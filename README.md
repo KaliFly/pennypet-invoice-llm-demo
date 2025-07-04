@@ -1,5 +1,4 @@
-# Initialize repository and add files in one block
-echo "# Pennypet Invoice LLM Demo
+# Pennypet Invoice LLM Demo
 
 ## Description
 This repository contains a minimal proof-of-concept prototype for automating veterinary invoice processing using OCR and a large language model (LLM). The Streamlit-based demo allows uploading PDF or image invoices, extracts text via Tesseract OCR, parses and structures key fields with OpenAI’s GPT-4, and exports results in JSON or CSV.
