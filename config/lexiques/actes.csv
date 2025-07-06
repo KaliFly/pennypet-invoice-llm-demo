@@ -1,0 +1,111 @@
+﻿Catégorie;Sous-acte;AMV;regex_pattern
+Consultation et diagnostic;Consultation générale;1;(?i)\bconsult(?:ation)?\s+générale\b
+Consultation et diagnostic;Consultation d’urgence;1;(?i)\bconsult(?:ation)?\s+d['’]?urgence\b
+Consultation et diagnostic;Téléconsultation;1;(?i)\bt[eé]l[eé]consult(?:ation)?\b
+Consultation et diagnostic;Examen clinique (palpation, auscultation, température);1;(?i)\bexamen\s+clinique\b|\bpalpation\b|\bauscultation\b|\btemp[ée]rature\b
+Consultation et diagnostic;Prélèvement sanguin diagnostique;1;(?i)\bpr[eé]l[eè]vement\s+sanguin\b|\bdiagnostique\b
+Consultation et diagnostic;Prélèvement d’urine diagnostique;1;(?i)\bpr[eé]l[eè]vement\s+d['’]?urine\b
+Consultation et diagnostic;Prélèvement de selles diagnostique;1;(?i)\bpr[eé]l[eè]vement\s+de\s+selles\b
+Consultation et diagnostic;Numération-formule sanguine;1;(?i)\bnum[eé]ration[-\s]?formule\b|\bh[ée]mogramme\b
+Consultation et diagnostic;Biochimie sanguine;1;(?i)\bbiochimie\s+sanguine\b
+Consultation et diagnostic;Sérologie infectieuse;1;(?i)\bs[eé]rologie\b.+infectieuse\b
+Consultation et diagnostic;PCR diagnostic;1;(?i)\bPCR\b|\bpolymerase\s+chain\s+reaction\b
+Consultation et diagnostic;Radiographie (thorax);1;(?i)\bradiographie\s*thoraxthorax\b|\bradio\sthorax\b
+Consultation et diagnostic;Radiographie (abdomen);1;(?i)\bradiographie\sabdomenabdomen\b|\bradio\sabdomen\b
+Consultation et diagnostic;Radiographie (os);1;(?i)\bradiographie\sosos\b|\bradio\s+os\b
+Consultation et diagnostic;Échographie abdominale;1;(?i)\b[eé]chographie\s+abdominale\b|\becho\s+abdo\b
+Consultation et diagnostic;Échographie cardiaque;1;(?i)\b[eé]chographie\s+cardiaque\b|\becho\s+cardio\b
+Consultation et diagnostic;Scanner (CT);1;(?i)\bscanner\b|\bCT\b|\bcomputed\s+tomography\b
+Consultation et diagnostic;IRM;1;(?i)\bIRM\b|\bimagerie\s+par\s+r[eé]sonance\b
+Consultation et diagnostic;Gastroscopie;1;(?i)\bgastroscopie\b|\bfibroscopie\s+œsophagienne\b
+Consultation et diagnostic;Rhinoscopie;1;(?i)\brhinoscopie\b
+Consultation et diagnostic;Bronchoscopie;1;(?i)\bbronchoscopie\b
+Consultation et diagnostic;Cœlioscopie (laparoscopie);1;(?i)\bco[ée]lioscopie\b|\blaparoscopie\b
+Consultation et diagnostic;Cytopathologie;1;(?i)\bcytopathologie\b
+Consultation et diagnostic;Biopsie cutanée;1;(?i)\bbiopsie\s+cutan[ée]\b
+Consultation et diagnostic;Biopsie tissulaire;1;(?i)\bbiopsie\s+tissulaire\b
+Consultation et diagnostic;Électrocardiogramme (ECG);1;(?i)\b(electrocardiogramme|ECG)\b
+Consultation et diagnostic;Doppler (échocardiographie);1;(?i)\bDoppler\b|\b[eé]chocardiographie\b
+Consultation et diagnostic;Épreuve d’effort;1;(?i)\b[eé]preuve\s+d[’]?effort\b
+Préventif;Visite annuelle;1;(?i)\bvisite\s+annuelle\b
+Préventif;Bilan gériatrique;1;(?i)\bbilan\s+g[eé]riatrique\b
+Préventif;Plan de vaccination (rage, parvovirose…);1;(?i)\bplan\s+de\s+vaccination\b|\bvaccination\b
+Préventif;Stérilisation ovariectomie;1;(?i)\bst[ée]rilisation\s+ovari(?:ectomie|otomie)\b
+Préventif;Stérilisation castration;1;(?i)\bst[ée]rilisation\s+castration\b|\borchidectomie\b
+Préventif;Implantation de puce électronique;1;(?i)\bimplantation\s+de\s+puce\b|\bpuce\s+electronique\b
+Préventif;Tatouage d’identification;1;(?i)\btatouage\b|\bidentification\b
+Préventif;Vermifugation interne;1;(?i)\bvermifugation\s+interne\b
+Préventif;Traitement antiparasitaire externe (puces, tiques);1;(?i)\btraitement\s+antiparasitaire\b|\bpuces\b|\btiques\b
+Préventif;Conseil diététique et nutritionnel;1;(?i)\bconseil\s+di[eé]t[eé]tique\b|\bnutritionnel\b
+Chirurgical;Chirurgie des tissus mous – mastectomie;5;(?i)\bmastectomie\b
+Chirurgical;Chirurgie des tissus mous – ablation de tumeur;5;(?i)\b(ablation\s+de\s+tumeur|chirurgie\s+des\s+tissus\s+mous)\b
+Chirurgical;Chirurgie abdominale – entérotomie;5;(?i)\bent[eé]rotomie\b
+Chirurgical;Chirurgie abdominale – cholécystectomie;5;(?i)\bchol[eé]cystectomie\b
+Chirurgical;Chirurgie orthopédique – ostéosynthèse;5;(?i)\bost[eé]osynth[eè]se\b
+Chirurgical;Chirurgie orthopédique – ligamentoplastie;5;(?i)\bligamentoplastie\b
+Chirurgical;Chirurgie thoracique – thoracotomie;5;(?i)\bthoracotomie\b
+Chirurgical;Neurochirurgie – laminectomie;5;(?i)\blaminectomie\b
+Chirurgical;Chirurgie oculaire – extraction de cataracte;5;(?i)\bextraction\s+de\s+cataracte\b
+Chirurgical;Chirurgie oculaire – entropion;5;(?i)\bentropion\b
+Chirurgical;Chirurgie oculaire – ectropion;5;(?i)\bectropion\b
+Chirurgical;Chirurgie oculaire – greffe de cornée;5;(?i)\bgreffe\s+de\s+corn[eée]\b
+Chirurgical;Césarienne programmée;5;(?i)\bc[eé]sarienne\s+programm[eée]\b
+Chirurgical;Chirurgie d’urgence polytraumatisme;5;(?i)\b(polytraumatisme|chirurgie\s+d['’]?urgence)\b
+Anesthésie et douleur;Anesthésie générale inhalée;1;(?i)\banesth[eé]sie\s+g[eé]n[eé]rale\s+inhal[eée]\b
+Anesthésie et douleur;Anesthésie générale injectable;1;(?i)\banesth[eé]sie\s+g[eé]n[eé]rale\s+injectable\b
+Anesthésie et douleur;Anesthésie locorégionale – bloc nerveux;1;(?i)\banesth[eé]sie\s+locorégionale\b|\bbloc\s+nerveux\b
+Anesthésie et douleur;Anesthésie locorégionale – rachianesthésie;1;(?i)\brachianesth[eé]sie\b
+Anesthésie et douleur;Analgesie multimodale (morphiniques, AINS…);1;(?i)\banalgesie\s+multimodale\b|\bmorphiniques\b|\bAINS\b
+Anesthésie et douleur;Surveillance péri-opératoire (monitoring cardiaque);1;(?i)\bsurveillance\s+p[eé]ri[-]?op[eé]ratoire\b|\bmonitoring\s+cardiaque\b
+Anesthésie et douleur;Surveillance post-opératoire (capnographie);1;(?i)\bsurveillance\s+post[-]?op[eé]ratoire\b|\bcapnographie\b
+Hospitalisation et soins intensifs;Perfusion intraveineuse;1;(?i)\bperfusion\s+intraveineuse\b
+Hospitalisation et soins intensifs;Perfusion entérale;1;(?i)\bperfusion\s+ent[eé]rale\b
+Hospitalisation et soins intensifs;Oxygénothérapie;1;(?i)\boxyg[eé]noth[eé]rapie\b
+Hospitalisation et soins intensifs;Surveillance ECG continue;1;(?i)\bsurveillance\s+ECG\b|\bcontinue\b
+Hospitalisation et soins intensifs;Surveillance SpO₂;1;(?i)\bSpO₂\b|\bSaturation\s+O₂\b
+Hospitalisation et soins intensifs;Surveillance pression artérielle;1;(?i)\bpression\s+art[ée]rielle\b
+Hospitalisation et soins intensifs;Nutrition parentérale;1;(?i)\bnutrition\s+parent[eé]rale\b
+Hospitalisation et soins intensifs;Assistance ventilatoire;1;(?i)\bassistance\s+ventilatoire\b
+Reproduction et gynécologie;Échographie de gestation;1;(?i)\b[eé]chographie\s+de\s+gestation\b
+Reproduction et gynécologie;Insémination artificielle;1;(?i)\bins[eé]mination\s+artificielle\b
+Reproduction et gynécologie;Diagnostic de fertilité;1;(?i)\bdiagnostic\s+de\s+fertilit[eé]\b
+Reproduction et gynécologie;Assistance à la mise bas;1;(?i)\bassistance\s+à\s+la\s+mise\s+bas\b
+Reproduction et gynécologie;Césarienne en urgence;5;(?i)\bc[eé]sarienne\s+en\s+urgence\b
+Dentisterie;Détartrage;1;(?i)\bd[eé]tartrage\b
+Dentisterie;Polissage dentaire;1;(?i)\bpolissage\s+dentaire\b
+Dentisterie;Extraction dentaire;1;(?i)\bextraction\s+dentaire\b
+Dentisterie;Ostéotomie maxillaire/mandibulaire;5;(?i)\bost[eé]otomie\s+maxillaire\b|\bmandibulaire\b
+Dentisterie;Correction orthodontique;1;(?i)\borthodontique\b|\bcorrection\b
+Dermatologie et ORL;Biopsie cutanée;1;(?i)\bbiopsie\s+cutan[ée]\b
+Dermatologie et ORL;Greffe de peau;5;(?i)\bgreffe\s+de\s+peau\b
+Dermatologie et ORL;Traitement d’otite (lavage);1;(?i)\botite\b|\blavage\b
+Dermatologie et ORL;Examen otoscopique;1;(?i)\botoscopie\b|\bexamen\s+oto\b
+Dermatologie et ORL;Laserthérapie cutanée;1;(?i)\blaserth[eé]rapie\b
+Dermatologie et ORL;Cryothérapie cutanée;1;(?i)\bcryoth[eé]rapie\b
+Ophtalmologie;Tonométrie;1;(?i)\btonom[eé]trie\b
+Ophtalmologie;Examen du fond d’œil;1;(?i)\bfond\s+d[’]?œil\b|\boeil\b
+Ophtalmologie;Chirurgie de la cataracte;5;(?i)\bchirurgie\s+de\s+cataracte\b
+Ophtalmologie;Kératoplastie;5;(?i)\bk[ée]ratoplastie\b
+Physiothérapie et rééducation;Hydrothérapie;1;(?i)\bhydroth[eé]rapie\b
+Physiothérapie et rééducation;Électrothérapie;1;(?i)\b[eé]lectroth[eé]rapie\b
+Physiothérapie et rééducation;Mobilisations passives;1;(?i)\bmobilisations\s+passives\b
+Physiothérapie et rééducation;Exercices de proprioception;1;(?i)\bproprioception\b
+Physiothérapie et rééducation;Massages thérapeutiques;1;(?i)\bmassages?\s+th[eé]rapeutiques\b
+Biologie et laboratoire;Culture bactérienne;1;(?i)\bculture\s+bact[ée]rienne\b
+Biologie et laboratoire;Antibiogramme;1;(?i)\bantibiogramme\b
+Biologie et laboratoire;Cytologie;1;(?i)\bcytologie\b
+Biologie et laboratoire;Histopathologie;1;(?i)\bhistopathologie\b
+Urgences et premiers secours;Suture de plaies;1;(?i)\bsuture\s+de\s+plaies\b
+Urgences et premiers secours;Gestion des brûlures;1;(?i)\bbr[ûu]lures\b|\bgestion\b
+Urgences et premiers secours;Stabilisation de polytraumatismes;1;(?i)\bstabilisation\b|\bpolytraumatisme\b
+Soins palliatifs et fin de vie;Évaluation de la douleur chronique;1;(?i)\bdouleur\s+chronique\b|$$eé]valuation\b
+Soins palliatifs et fin de vie;Protocole d’euthanasie intraveineuse;1;(?i)\beuthanasie\s+intraveineuse\b
+Soins palliatifs et fin de vie;Protocole d’euthanasie intramusculaire;1;(?i)\beuthanasie\s+intramusculaire\b
+Médecines complémentaires;Acupuncture vétérinaire;1;(?i)\bacupuncture\b
+Médecines complémentaires;Homéopathie vétérinaire;1;(?i)\bhom[eé]opathie\b
+Médecines complémentaires;Phytothérapie vétérinaire;1;(?i)\bphytoth[eé]rapie\b
+Médecines complémentaires;Ostéopathie animale;1;(?i)\bost[eé]opathie\b
+Expertise et contrôle;Expertise judiciaire (maltraitance);1;(?i)\bexpertise\s+judiciaire\b|\bmaltraitance\b
+Expertise et contrôle;Expertise civile (litiges);1;(?i)\bexpertise\s+civile\b|\blitiges\b
+Expertise et contrôle;Inspection sanitaire d’élevages;1;(?i)\binspection\s+sanitaire\b|\b[ée]levages\b
+Expertise et contrôle;Traçabilité et dossier de santé animal;1;(?i)\btra[cç]abilit[eé]\b|\bdossier\s+de\s+sant[ée]\b

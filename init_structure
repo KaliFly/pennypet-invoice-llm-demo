@@ -1,0 +1,17 @@
+#!/bin/bash
+
+mkdir -p pennypet-invoice-llm-demo/ocr_module
+mkdir -p pennypet-invoice-llm-demo/llm_parser
+mkdir -p pennypet-invoice-llm-demo/ui
+mkdir -p pennypet-invoice-llm-demo/tests
+
+touch pennypet-invoice-llm-demo/.gitignore
+touch pennypet-invoice-llm-demo/.env
+touch pennypet-invoice-llm-demo/requirements.txt
+touch pennypet-invoice-llm-demo/main.py
+touch pennypet-invoice-llm-demo/README.md
+
+touch pennypet-invoice-llm-demo/ocr_module/ocr.py
+touch pennypet-invoice-llm-demo/llm_parser/parser.py
+touch pennypet-invoice-llm-demo/ui/app.py
+touch pennypet-invoice-llm-demo/tests/test_pipeline.py

@@ -1,0 +1,67 @@
+{
+  "mapping_amv_pennypet": {
+    "1": {
+      "description": "Actes courants (consultations, examens, soins préventifs)",
+      "categories": [
+        "Consultation et diagnostic",
+        "Préventif", 
+        "Anesthésie et douleur",
+        "Hospitalisation et soins intensifs",
+        "Reproduction et gynécologie",
+        "Dermatologie et ORL",
+        "Biologie et laboratoire",
+        "Urgences et premiers secours",
+        "Soins palliatifs et fin de vie",
+        "Médecines complémentaires",
+        "Expertise et contrôle"
+      ],
+      "taux_integral": 50,
+      "taux_integral_plus": 100,
+      "plafond_annuel": 1000,
+      "franchise": 0,
+      "eligible_integral": true,
+      "eligible_integral_plus": true
+    },
+    "5": {
+      "description": "Actes chirurgicaux lourds",
+      "categories": [
+        "Chirurgical",
+        "Dentisterie",
+        "Ophtalmologie",
+        "Physiothérapie et rééducation"
+      ],
+      "taux_integral": 50,
+      "taux_integral_plus": 100,
+      "plafond_annuel": 1000,
+      "franchise": 0,
+      "eligible_integral": true,
+      "eligible_integral_plus": true
+    }
+  },
+  "formules_pennypet": {
+    "START": {
+      "type": "accident_uniquement",
+      "remboursement": 0,
+      "plafond": 500,
+      "description": "Fonds d'urgence accident"
+    },
+    "PREMIUM": {
+      "type": "accident_uniquement", 
+      "remboursement": 100,
+      "plafond": 500,
+      "description": "500€ remboursés en cas d'accident"
+    },
+    "INTEGRAL": {
+      "type": "accident_et_maladie",
+      "remboursement": 50,
+      "plafond": 1000,
+      "description": "50% des frais vétérinaires"
+    },
+    "INTEGRAL_PLUS": {
+      "type": "accident_et_maladie",
+      "remboursement": 100, 
+      "plafond": 1000,
+      "description": "100% des frais vétérinaires"
+    }
+  }
+}

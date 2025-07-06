@@ -1,0 +1,6 @@
+﻿Terme/Libellé;Catégorie;Définition;Variantes/Synonymes;Regex OCR;AMV officiel
+Codes Actes et Nomenclature (CCAM, internes);Codes Actes & Nomenclature;Codes standardisés pour chaque acte;CCAM_VETO, CODE_ACTE;^CCAM;Oui
+Grilles tarifaires associées;Codes Actes & Nomenclature;Tarif unitaire par acte selon la grille;TARIF_GRILLE, BARÈME;^TARIF;Non
+Unités et Quantités;Unités & Quantités;Nombre d’actes, unités de temps ou de matériel;QTE, NOMBRE, HEURES;^QTE;Non
+Remises forfaitaires ou en pourcentage;Remises & Majorations;Réductions appliquées;REMISE_FORFAIT, REMISE_%;^REMISE;Non
+Majorations de garde, urgence, weekend;Remises & Majorations;Suppléments de facturation selon conditions;MAJORATION_GARDE, MAJORATION_URGENCE;^MAJORATION;Non

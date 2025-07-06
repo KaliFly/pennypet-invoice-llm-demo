@@ -1,0 +1,6 @@
+Terme/Libellé;Catégorie;Définition;Variantes/Synonymes;Regex OCR
+Liens vers feuilles de soins;Preuves et Justificatifs;URL ou référence des feuilles de soins;FEUILLES DE SOINS, SOINS ONLINE;^(FEUILLES?\sDE\sSOINS)
+Ordonnances jointes;Preuves et Justificatifs;Références ou copies d’ordonnances;ORDONNANCE, PRESCRIPTION;^(ORDONNANCE)
+Bordereaux d’expédition / hospitalisation;Preuves et Justificatifs;Documents d’admission ou d’expédition d’échantillons;BORDEREAU, ADMISSION;^(BORDEREAU)
+Mode de livraison / réception;Mode de Livraison;Comment la facture ou documents ont été remis;REMISE EN MAIN PROPRE, ENVOI POSTAL;^(REMISE)
+Date et heure de remise;Mode de Livraison;Date et heure précises de la remise;LE … À …;^LE\s*\d{2}/\d{2}/\d{4}\s*À\s*\d{2}:\d{2}

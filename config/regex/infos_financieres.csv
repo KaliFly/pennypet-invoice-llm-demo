@@ -1,0 +1,12 @@
+﻿Terme/Libellé;Catégorie;Définition;Variantes/Synonymes;Regex OCR
+Taux de TVA par ligne d’acte;Détails TVA et Taxes;Pourcentage de TVA appliqué à chaque prestation;% TVA, TVA 20%, TAUX TVA;^%?\s*TVA
+Montant TVA HT et TTC;Détails TVA et Taxes;Montants de TVA hors taxes et toutes taxes comprises;MONTANT TVA, TVA HT, TVA TTC;^MONTANT\s*TVA
+Codes TVA (exonération, taux réduits);Détails TVA et Taxes;Codes ou mentions légales des taux et exonérations;EXO TVA, TVA REDUIT, FRANCHISE;^EXO
+Total HT global;Totaux et Récapitulatif;Somme de tous les montants hors taxes;TOTAL HT, MONTANT HT;^TOTAL\s*HT
+Total TVA global;Totaux et Récapitulatif;Somme de toutes les TVA appliquées;TOTAL TVA;^TOTAL\s*TVA
+Total TTC global;Totaux et Récapitulatif;Somme finale toutes taxes comprises;TOTAL TTC;^TOTAL\s*TTC
+Acomptes versés et soldes dus;Totaux et Récapitulatif;Montants déjà versés en acompte et reste à payer;ACOMPTE, SOLDE, RESTE DÛ;^ACOMPTE
+Mode de paiement;Conditions de Paiement;Moyens utilisés (virement, chèque, CB, prélèvement);VIREMENT, CHEQUE, CB, PRELEVEMENT;^VIREMENT
+Délai de paiement;Conditions de Paiement;Nombre de jours accordés avant échéance;NET 30, NET 60;^NET\s*\d{1,3}
+IBAN / BIC;Conditions de Paiement;Coordonnées bancaires de l’émetteur;IBAN, BIC;^IBAN
+Escompte pour paiement anticipé;Conditions de Paiement;Taux ou montant de réduction en cas de paiement avant terme;ESCOMPTE, REMISE ANTICIPEE;^ESCOMPTE

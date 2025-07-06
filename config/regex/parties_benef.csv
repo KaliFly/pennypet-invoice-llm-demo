@@ -1,0 +1,12 @@
+﻿Terme/Libellé;Catégorie;Définition;Variantes/Synonymes;Regex OCR;
+Vétérinaire / Clinique – Nom;Coordonnées Complètes;Nom de la clinique ou du vétérinaire;VETO, CLINIQUE;^V[EÉ]T[EÉ]RINAIRE;
+Vétérinaire / Clinique – Adresse;Coordonnées Complètes;Adresse complète de la clinique;ADRESSE;^ADRESSE;
+Vétérinaire / Clinique – Téléphone / E-mail;Coordonnées Complètes;Contacts téléphone et courriel;TEL, TÉLÉPHONE, EMAIL;^TEL;
+Propriétaire – Nom;Coordonnées Complètes;Nom du propriétaire du patient;OWNER, PROPRIETAIRE;^OWNER;
+Propriétaire – Adresse;Coordonnées Complètes;Adresse complète du propriétaire;ADRESSE PROPRIETAIRE;^ADRESSE;
+Propriétaire – Téléphone / E-mail;Coordonnées Complètes;Contacts du propriétaire;TEL, EMAIL;^TEL;
+Assureur – Nom de la police;Coordonnées Complètes;Nom de l’assureur et type de contrat;ASSUREUR, POLICE;^ASSUREUR;
+Assureur – Numéro de contrat;Coordonnées Complètes;Référence du contrat d’assurance;N° CONTRAT;^N°\s*CONTRAT;
+Titulaire (émetteur);Rôle et Statut;Qui émet la facture;EMETTEUR, FACTURANT;^EMETTEUR;
+Bénéficiaire (client / tiers payeur);Rôle et Statut;Destinataire de la facture;BÉNÉFICIAIRE, TIERS PAYEUR;^B[ÉE]N[EÉ]FICIAIRE;
+Animal – Nom, espèce et âge/naissance;Coordonnées Complètes;Nom de l’animal, espèce et date de naissance ou âge;ANIMAL;^((?:[A-Za-zÀ-ÖØ-öø-ÿ' -]+\s+(?:chien|chat|lapin|rongeur|furet))|(?:(?:chien|chat|lapin|rongeur|furet)\s+[A-Za-zÀ-ÖØ-öø-ÿ' -]+))[\s,;-]+((?:\d{2}\/\d{2}\/\d{4})|\d+\s*(?:ans?|mois?))$
