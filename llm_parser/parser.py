@@ -56,8 +56,14 @@ class InvoiceParser:
         response = self.client.chat(messages)
         content = response.choices[0].message.content
 
+        # Extraire le bloc JSON s’il est encadré par des backticks ou autre
+        match = re.search(r"(\{.*\})", content, re.DOTALL)
+        if not match:
+            raise ValueError(f"Réponse LLM invalide, JSON non trouvé dans: {content!r}")
+        json_str = match.group(1)
+
         try:
-            data = json.loads(content)
+            data = json.loads(json_str)
         except json.JSONDecodeError as e:
             raise ValueError(f"Réponse LLM invalide, JSON attendu: {e}")
 

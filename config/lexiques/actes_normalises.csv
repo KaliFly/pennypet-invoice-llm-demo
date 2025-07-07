@@ -1,111 +1,111 @@
-Catégorie,Sous-acte,AMV,regex_pattern,code_acte
-Consultation et diagnostic,Consultation générale,1,(?i)\bconsult(?:ation)?\s+générale\b,CONSULTATION_ET_DIAGNOSTIC_CONSULTATION_G_N_RALE
-Consultation et diagnostic,Consultation d’urgence,1,(?i)\bconsult(?:ation)?\s+d['’]?urgence\b,CONSULTATION_ET_DIAGNOSTIC_CONSULTATION_D_URGENCE
-Consultation et diagnostic,Téléconsultation,1,(?i)\bt[eé]l[eé]consult(?:ation)?\b,CONSULTATION_ET_DIAGNOSTIC_T_L_CONSULTATION
-Consultation et diagnostic,"Examen clinique (palpation, auscultation, température)",1,(?i)\bexamen\s+clinique\b|\bpalpation\b|\bauscultation\b|\btemp[ée]rature\b,CONSULTATION_ET_DIAGNOSTIC_EXAMEN_CLINIQUE_PALPATION_AUSCULTATION_TEMP_RATURE_
-Consultation et diagnostic,Prélèvement sanguin diagnostique,1,(?i)\bpr[eé]l[eè]vement\s+sanguin\b|\bdiagnostique\b,CONSULTATION_ET_DIAGNOSTIC_PR_L_VEMENT_SANGUIN_DIAGNOSTIQUE
-Consultation et diagnostic,Prélèvement d’urine diagnostique,1,(?i)\bpr[eé]l[eè]vement\s+d['’]?urine\b,CONSULTATION_ET_DIAGNOSTIC_PR_L_VEMENT_D_URINE_DIAGNOSTIQUE
-Consultation et diagnostic,Prélèvement de selles diagnostique,1,(?i)\bpr[eé]l[eè]vement\s+de\s+selles\b,CONSULTATION_ET_DIAGNOSTIC_PR_L_VEMENT_DE_SELLES_DIAGNOSTIQUE
-Consultation et diagnostic,Numération-formule sanguine,1,(?i)\bnum[eé]ration[-\s]?formule\b|\bh[ée]mogramme\b,CONSULTATION_ET_DIAGNOSTIC_NUM_RATION_FORMULE_SANGUINE
-Consultation et diagnostic,Biochimie sanguine,1,(?i)\bbiochimie\s+sanguine\b,CONSULTATION_ET_DIAGNOSTIC_BIOCHIMIE_SANGUINE
-Consultation et diagnostic,Sérologie infectieuse,1,(?i)\bs[eé]rologie\b.+infectieuse\b,CONSULTATION_ET_DIAGNOSTIC_S_ROLOGIE_INFECTIEUSE
-Consultation et diagnostic,PCR diagnostic,1,(?i)\bPCR\b|\bpolymerase\s+chain\s+reaction\b,CONSULTATION_ET_DIAGNOSTIC_PCR_DIAGNOSTIC
-Consultation et diagnostic,Radiographie (thorax),1,(?i)\bradiographie\s*(?:thorax)\b|\bradio\sthorax\b,CONSULTATION_ET_DIAGNOSTIC_RADIOGRAPHIE_THORAX_
-Consultation et diagnostic,Radiographie (abdomen),1,(?i)\bradiographie\s(?:abdomen)\b|\bradio\sabdomen\b,CONSULTATION_ET_DIAGNOSTIC_RADIOGRAPHIE_ABDOMEN_
-Consultation et diagnostic,Radiographie (os),1,(?i)\bradiographie\sos\b|\bradio\s+os\b,CONSULTATION_ET_DIAGNOSTIC_RADIOGRAPHIE_OS_
-Consultation et diagnostic,Échographie abdominale,1,(?i)\b[eé]chographie\s+abdominale\b|\becho\s+abdo\b,CONSULTATION_ET_DIAGNOSTIC_CHOGRAPHIE_ABDOMINALE
-Consultation et diagnostic,Échographie cardiaque,1,(?i)\b[eé]chographie\s+cardiaque\b|\becho\s+cardio\b,CONSULTATION_ET_DIAGNOSTIC_CHOGRAPHIE_CARDIAQUE
-Consultation et diagnostic,Scanner (CT),1,(?i)\bscanner\b|\bCT\b|\bcomputed\s+tomography\b,CONSULTATION_ET_DIAGNOSTIC_SCANNER_CT_
-Consultation et diagnostic,IRM,1,(?i)\bIRM\b|\bimagerie\s+par\s+r[eé]sonance\b,CONSULTATION_ET_DIAGNOSTIC_IRM
-Consultation et diagnostic,Gastroscopie,1,(?i)\bgastroscopie\b|\bfibroscopie\s+œsophagienne\b,CONSULTATION_ET_DIAGNOSTIC_GASTROSCOPIE
-Consultation et diagnostic,Rhinoscopie,1,(?i)\brhinoscopie\b,CONSULTATION_ET_DIAGNOSTIC_RHINOSCOPIE
-Consultation et diagnostic,Bronchoscopie,1,(?i)\bbronchoscopie\b,CONSULTATION_ET_DIAGNOSTIC_BRONCHOSCOPIE
-Consultation et diagnostic,Cœlioscopie (laparoscopie),1,(?i)\bco[ée]lioscopie\b|\blaparoscopie\b,CONSULTATION_ET_DIAGNOSTIC_C_LIOSCOPIE_LAPAROSCOPIE_
-Consultation et diagnostic,Cytopathologie,1,(?i)\bcytopathologie\b,CONSULTATION_ET_DIAGNOSTIC_CYTOPATHOLOGIE
-Consultation et diagnostic,Biopsie cutanée,1,(?i)\bbiopsie\s+cutan[ée]\b,CONSULTATION_ET_DIAGNOSTIC_BIOPSIE_CUTAN_E
-Consultation et diagnostic,Biopsie tissulaire,1,(?i)\bbiopsie\s+tissulaire\b,CONSULTATION_ET_DIAGNOSTIC_BIOPSIE_TISSULAIRE
-Consultation et diagnostic,Électrocardiogramme (ECG),1,(?i)\b(electrocardiogramme|ECG)\b,CONSULTATION_ET_DIAGNOSTIC_LECTROCARDIOGRAMME_ECG_
-Consultation et diagnostic,Doppler (échocardiographie),1,(?i)\bDoppler\b|\b[eé]chocardiographie\b,CONSULTATION_ET_DIAGNOSTIC_DOPPLER_CHOCARDIOGRAPHIE_
-Consultation et diagnostic,Épreuve d’effort,1,(?i)\b[eé]preuve\s+d[’]?effort\b,CONSULTATION_ET_DIAGNOSTIC_PREUVE_D_EFFORT
-Préventif,Visite annuelle,1,(?i)\bvisite\s+annuelle\b,PR_VENTIF_VISITE_ANNUELLE
-Préventif,Bilan gériatrique,1,(?i)\bbilan\s+g[eé]riatrique\b,PR_VENTIF_BILAN_G_RIATRIQUE
-Préventif,"Plan de vaccination (rage, parvovirose…)",1,(?i)\bplan\s+de\s+vaccination\b|\bvaccination\b,PR_VENTIF_PLAN_DE_VACCINATION_RAGE_PARVOVIROSE_
-Préventif,Stérilisation ovariectomie,1,(?i)\bst[ée]rilisation\s+ovari(?:ectomie|otomie)\b,PR_VENTIF_ST_RILISATION_OVARIECTOMIE
-Préventif,Stérilisation castration,1,(?i)\bst[ée]rilisation\s+castration\b|\borchidectomie\b,PR_VENTIF_ST_RILISATION_CASTRATION
-Préventif,Implantation de puce électronique,1,(?i)\bimplantation\s+de\s+puce\b|\bpuce\s+electronique\b,PR_VENTIF_IMPLANTATION_DE_PUCE_LECTRONIQUE
-Préventif,Tatouage d’identification,1,(?i)\btatouage\b|\bidentification\b,PR_VENTIF_TATOUAGE_D_IDENTIFICATION
-Préventif,Vermifugation interne,1,(?i)\bvermifugation\s+interne\b,PR_VENTIF_VERMIFUGATION_INTERNE
-Préventif,"Traitement antiparasitaire externe (puces, tiques)",1,(?i)\btraitement\s+antiparasitaire\b|\bpuces\b|\btiques\b,PR_VENTIF_TRAITEMENT_ANTIPARASITAIRE_EXTERNE_PUCES_TIQUES_
-Préventif,Conseil diététique et nutritionnel,1,(?i)\bconseil\s+di[eé]t[eé]tique\b|\bnutritionnel\b,PR_VENTIF_CONSEIL_DI_T_TIQUE_ET_NUTRITIONNEL
-Chirurgical,Chirurgie des tissus mous – mastectomie,5,(?i)\bmastectomie\b,CHIRURGICAL_CHIRURGIE_DES_TISSUS_MOUS_MASTECTOMIE
-Chirurgical,Chirurgie des tissus mous – ablation de tumeur,5,(?i)\b(ablation\s+de\s+tumeur|chirurgie\s+des\s+tissus\s+mous)\b,CHIRURGICAL_CHIRURGIE_DES_TISSUS_MOUS_ABLATION_DE_TUMEUR
-Chirurgical,Chirurgie abdominale – entérotomie,5,(?i)\bent[eé]rotomie\b,CHIRURGICAL_CHIRURGIE_ABDOMINALE_ENT_ROTOMIE
-Chirurgical,Chirurgie abdominale – cholécystectomie,5,(?i)\bchol[eé]cystectomie\b,CHIRURGICAL_CHIRURGIE_ABDOMINALE_CHOL_CYSTECTOMIE
-Chirurgical,Chirurgie orthopédique – ostéosynthèse,5,(?i)\bost[eé]osynth[eè]se\b,CHIRURGICAL_CHIRURGIE_ORTHOP_DIQUE_OST_OSYNTH_SE
-Chirurgical,Chirurgie orthopédique – ligamentoplastie,5,(?i)\bligamentoplastie\b,CHIRURGICAL_CHIRURGIE_ORTHOP_DIQUE_LIGAMENTOPLASTIE
-Chirurgical,Chirurgie thoracique – thoracotomie,5,(?i)\bthoracotomie\b,CHIRURGICAL_CHIRURGIE_THORACIQUE_THORACOTOMIE
-Chirurgical,Neurochirurgie – laminectomie,5,(?i)\blaminectomie\b,CHIRURGICAL_NEUROCHIRURGIE_LAMINECTOMIE
-Chirurgical,Chirurgie oculaire – extraction de cataracte,5,(?i)\bextraction\s+de\s+cataracte\b,CHIRURGICAL_CHIRURGIE_OCULAIRE_EXTRACTION_DE_CATARACTE
-Chirurgical,Chirurgie oculaire – entropion,5,(?i)\bentropion\b,CHIRURGICAL_CHIRURGIE_OCULAIRE_ENTROPION
-Chirurgical,Chirurgie oculaire – ectropion,5,(?i)\bectropion\b,CHIRURGICAL_CHIRURGIE_OCULAIRE_ECTROPION
-Chirurgical,Chirurgie oculaire – greffe de cornée,5,(?i)\bgreffe\s+de\s+corn[eée]\b,CHIRURGICAL_CHIRURGIE_OCULAIRE_GREFFE_DE_CORN_E
-Chirurgical,Césarienne programmée,5,(?i)\bc[eé]sarienne\s+programm[eée]\b,CHIRURGICAL_C_SARIENNE_PROGRAMM_E
-Chirurgical,Chirurgie d’urgence polytraumatisme,5,(?i)\b(polytraumatisme|chirurgie\s+d['’]?urgence)\b,CHIRURGICAL_CHIRURGIE_D_URGENCE_POLYTRAUMATISME
-Anesthésie et douleur,Anesthésie générale inhalée,1,(?i)\banesth[eé]sie\s+g[eé]n[eé]rale\s+inhal[eée]\b,ANESTH_SIE_ET_DOULEUR_ANESTH_SIE_G_N_RALE_INHAL_E
-Anesthésie et douleur,Anesthésie générale injectable,1,(?i)\banesth[eé]sie\s+g[eé]n[eé]rale\s+injectable\b,ANESTH_SIE_ET_DOULEUR_ANESTH_SIE_G_N_RALE_INJECTABLE
-Anesthésie et douleur,Anesthésie locorégionale – bloc nerveux,1,(?i)\banesth[eé]sie\s+locorégionale\b|\bbloc\s+nerveux\b,ANESTH_SIE_ET_DOULEUR_ANESTH_SIE_LOCOR_GIONALE_BLOC_NERVEUX
-Anesthésie et douleur,Anesthésie locorégionale – rachianesthésie,1,(?i)\brachianesth[eé]sie\b,ANESTH_SIE_ET_DOULEUR_ANESTH_SIE_LOCOR_GIONALE_RACHIANESTH_SIE
-Anesthésie et douleur,"Analgesie multimodale (morphiniques, AINS…)",1,(?i)\banalgesie\s+multimodale\b|\bmorphiniques\b|\bAINS\b,ANESTH_SIE_ET_DOULEUR_ANALGESIE_MULTIMODALE_MORPHINIQUES_AINS_
-Anesthésie et douleur,Surveillance péri-opératoire (monitoring cardiaque),1,(?i)\bsurveillance\s+p[eé]ri[-]?op[eé]ratoire\b|\bmonitoring\s+cardiaque\b,ANESTH_SIE_ET_DOULEUR_SURVEILLANCE_P_RI_OP_RATOIRE_MONITORING_CARDIAQUE_
-Anesthésie et douleur,Surveillance post-opératoire (capnographie),1,(?i)\bsurveillance\s+post[-]?op[eé]ratoire\b|\bcapnographie\b,ANESTH_SIE_ET_DOULEUR_SURVEILLANCE_POST_OP_RATOIRE_CAPNOGRAPHIE_
-Hospitalisation et soins intensifs,Perfusion intraveineuse,1,(?i)\bperfusion\s+intraveineuse\b,HOSPITALISATION_ET_SOINS_INTENSIFS_PERFUSION_INTRAVEINEUSE
-Hospitalisation et soins intensifs,Perfusion entérale,1,(?i)\bperfusion\s+ent[eé]rale\b,HOSPITALISATION_ET_SOINS_INTENSIFS_PERFUSION_ENT_RALE
-Hospitalisation et soins intensifs,Oxygénothérapie,1,(?i)\boxyg[eé]noth[eé]rapie\b,HOSPITALISATION_ET_SOINS_INTENSIFS_OXYG_NOTH_RAPIE
-Hospitalisation et soins intensifs,Surveillance ECG continue,1,(?i)\bsurveillance\s+ECG\b|\bcontinue\b,HOSPITALISATION_ET_SOINS_INTENSIFS_SURVEILLANCE_ECG_CONTINUE
-Hospitalisation et soins intensifs,Surveillance SpO₂,1,(?i)\bSpO₂\b|\bSaturation\s+O₂\b,HOSPITALISATION_ET_SOINS_INTENSIFS_SURVEILLANCE_SPO_
-Hospitalisation et soins intensifs,Surveillance pression artérielle,1,(?i)\bpression\s+art[ée]rielle\b,HOSPITALISATION_ET_SOINS_INTENSIFS_SURVEILLANCE_PRESSION_ART_RIELLE
-Hospitalisation et soins intensifs,Nutrition parentérale,1,(?i)\bnutrition\s+parent[eé]rale\b,HOSPITALISATION_ET_SOINS_INTENSIFS_NUTRITION_PARENT_RALE
-Hospitalisation et soins intensifs,Assistance ventilatoire,1,(?i)\bassistance\s+ventilatoire\b,HOSPITALISATION_ET_SOINS_INTENSIFS_ASSISTANCE_VENTILATOIRE
-Reproduction et gynécologie,Échographie de gestation,1,(?i)\b[eé]chographie\s+de\s+gestation\b,REPRODUCTION_ET_GYN_COLOGIE_CHOGRAPHIE_DE_GESTATION
-Reproduction et gynécologie,Insémination artificielle,1,(?i)\bins[eé]mination\s+artificielle\b,REPRODUCTION_ET_GYN_COLOGIE_INS_MINATION_ARTIFICIELLE
-Reproduction et gynécologie,Diagnostic de fertilité,1,(?i)\bdiagnostic\s+de\s+fertilit[eé]\b,REPRODUCTION_ET_GYN_COLOGIE_DIAGNOSTIC_DE_FERTILIT_
-Reproduction et gynécologie,Assistance à la mise bas,1,(?i)\bassistance\s+à\s+la\s+mise\s+bas\b,REPRODUCTION_ET_GYN_COLOGIE_ASSISTANCE_LA_MISE_BAS
-Reproduction et gynécologie,Césarienne en urgence,5,(?i)\bc[eé]sarienne\s+en\s+urgence\b,REPRODUCTION_ET_GYN_COLOGIE_C_SARIENNE_EN_URGENCE
-Dentisterie,Détartrage,1,(?i)\bd[eé]tartrage\b,DENTISTERIE_D_TARTRAGE
-Dentisterie,Polissage dentaire,1,(?i)\bpolissage\s+dentaire\b,DENTISTERIE_POLISSAGE_DENTAIRE
-Dentisterie,Extraction dentaire,1,(?i)\bextraction\s+dentaire\b,DENTISTERIE_EXTRACTION_DENTAIRE
-Dentisterie,Ostéotomie maxillaire/mandibulaire,5,(?i)\bost[eé]otomie\s+maxillaire\b|\bmandibulaire\b,DENTISTERIE_OST_OTOMIE_MAXILLAIRE_MANDIBULAIRE
-Dentisterie,Correction orthodontique,1,(?i)\borthodontique\b|\bcorrection\b,DENTISTERIE_CORRECTION_ORTHODONTIQUE
-Dermatologie et ORL,Biopsie cutanée,1,(?i)\bbiopsie\s+cutan[ée]\b,DERMATOLOGIE_ET_ORL_BIOPSIE_CUTAN_E
-Dermatologie et ORL,Greffe de peau,5,(?i)\bgreffe\s+de\s+peau\b,DERMATOLOGIE_ET_ORL_GREFFE_DE_PEAU
-Dermatologie et ORL,Traitement d’otite (lavage),1,(?i)\botite\b|\blavage\b,DERMATOLOGIE_ET_ORL_TRAITEMENT_D_OTITE_LAVAGE_
-Dermatologie et ORL,Examen otoscopique,1,(?i)\botoscopie\b|\bexamen\s+oto\b,DERMATOLOGIE_ET_ORL_EXAMEN_OTOSCOPIQUE
-Dermatologie et ORL,Laserthérapie cutanée,1,(?i)\blaserth[eé]rapie\b,DERMATOLOGIE_ET_ORL_LASERTH_RAPIE_CUTAN_E
-Dermatologie et ORL,Cryothérapie cutanée,1,(?i)\bcryoth[eé]rapie\b,DERMATOLOGIE_ET_ORL_CRYOTH_RAPIE_CUTAN_E
-Ophtalmologie,Tonométrie,1,(?i)\btonom[eé]trie\b,OPHTALMOLOGIE_TONOM_TRIE
-Ophtalmologie,Examen du fond d’œil,1,(?i)\bfond\s+d[’]?œil\b|\boeil\b,OPHTALMOLOGIE_EXAMEN_DU_FOND_D_IL
-Ophtalmologie,Chirurgie de la cataracte,5,(?i)\bchirurgie\s+de\s+cataracte\b,OPHTALMOLOGIE_CHIRURGIE_DE_LA_CATARACTE
-Ophtalmologie,Kératoplastie,5,(?i)\bk[ée]ratoplastie\b,OPHTALMOLOGIE_K_RATOPLASTIE
-Physiothérapie et rééducation,Hydrothérapie,1,(?i)\bhydroth[eé]rapie\b,PHYSIOTH_RAPIE_ET_R_DUCATION_HYDROTH_RAPIE
-Physiothérapie et rééducation,Électrothérapie,1,(?i)\b[eé]lectroth[eé]rapie\b,PHYSIOTH_RAPIE_ET_R_DUCATION_LECTROTH_RAPIE
-Physiothérapie et rééducation,Mobilisations passives,1,(?i)\bmobilisations\s+passives\b,PHYSIOTH_RAPIE_ET_R_DUCATION_MOBILISATIONS_PASSIVES
-Physiothérapie et rééducation,Exercices de proprioception,1,(?i)\bproprioception\b,PHYSIOTH_RAPIE_ET_R_DUCATION_EXERCICES_DE_PROPRIOCEPTION
-Physiothérapie et rééducation,Massages thérapeutiques,1,(?i)\bmassages?\s+th[eé]rapeutiques\b,PHYSIOTH_RAPIE_ET_R_DUCATION_MASSAGES_TH_RAPEUTIQUES
-Biologie et laboratoire,Culture bactérienne,1,(?i)\bculture\s+bact[ée]rienne\b,BIOLOGIE_ET_LABORATOIRE_CULTURE_BACT_RIENNE
-Biologie et laboratoire,Antibiogramme,1,(?i)\bantibiogramme\b,BIOLOGIE_ET_LABORATOIRE_ANTIBIOGRAMME
-Biologie et laboratoire,Cytologie,1,(?i)\bcytologie\b,BIOLOGIE_ET_LABORATOIRE_CYTOLOGIE
-Biologie et laboratoire,Histopathologie,1,(?i)\bhistopathologie\b,BIOLOGIE_ET_LABORATOIRE_HISTOPATHOLOGIE
-Urgences et premiers secours,Suture de plaies,1,(?i)\bsuture\s+de\s+plaies\b,URGENCES_ET_PREMIERS_SECOURS_SUTURE_DE_PLAIES
-Urgences et premiers secours,Gestion des brûlures,1,(?i)\bbr[ûu]lures\b|\bgestion\b,URGENCES_ET_PREMIERS_SECOURS_GESTION_DES_BR_LURES
-Urgences et premiers secours,Stabilisation de polytraumatismes,1,(?i)\bstabilisation\b|\bpolytraumatisme\b,URGENCES_ET_PREMIERS_SECOURS_STABILISATION_DE_POLYTRAUMATISMES
-Soins palliatifs et fin de vie,Évaluation de la douleur chronique,1,(?i)\bdouleur\s+chronique\b|$$eé]valuation\b,SOINS_PALLIATIFS_ET_FIN_DE_VIE_VALUATION_DE_LA_DOULEUR_CHRONIQUE
-Soins palliatifs et fin de vie,Protocole d’euthanasie intraveineuse,1,(?i)\beuthanasie\s+intraveineuse\b,SOINS_PALLIATIFS_ET_FIN_DE_VIE_PROTOCOLE_D_EUTHANASIE_INTRAVEINEUSE
-Soins palliatifs et fin de vie,Protocole d’euthanasie intramusculaire,1,(?i)\beuthanasie\s+intramusculaire\b,SOINS_PALLIATIFS_ET_FIN_DE_VIE_PROTOCOLE_D_EUTHANASIE_INTRAMUSCULAIRE
-Médecines complémentaires,Acupuncture vétérinaire,1,(?i)\bacupuncture\b,M_DECINES_COMPL_MENTAIRES_ACUPUNCTURE_V_T_RINAIRE
-Médecines complémentaires,Homéopathie vétérinaire,1,(?i)\bhom[eé]opathie\b,M_DECINES_COMPL_MENTAIRES_HOM_OPATHIE_V_T_RINAIRE
-Médecines complémentaires,Phytothérapie vétérinaire,1,(?i)\bphytoth[eé]rapie\b,M_DECINES_COMPL_MENTAIRES_PHYTOTH_RAPIE_V_T_RINAIRE
-Médecines complémentaires,Ostéopathie animale,1,(?i)\bost[eé]opathie\b,M_DECINES_COMPL_MENTAIRES_OST_OPATHIE_ANIMALE
-Expertise et contrôle,Expertise judiciaire (maltraitance),1,(?i)\bexpertise\s+judiciaire\b|\bmaltraitance\b,EXPERTISE_ET_CONTR_LE_EXPERTISE_JUDICIAIRE_MALTRAITANCE_
-Expertise et contrôle,Expertise civile (litiges),1,(?i)\bexpertise\s+civile\b|\blitiges\b,EXPERTISE_ET_CONTR_LE_EXPERTISE_CIVILE_LITIGES_
-Expertise et contrôle,Inspection sanitaire d’élevages,1,(?i)\binspection\s+sanitaire\b|\b[ée]levages\b,EXPERTISE_ET_CONTR_LE_INSPECTION_SANITAIRE_D_LEVAGES
-Expertise et contrôle,Traçabilité et dossier de santé animal,1,(?i)\btra[cç]abilit[eé]\b|\bdossier\s+de\s+sant[ée]\b,EXPERTISE_ET_CONTR_LE_TRA_ABILIT_ET_DOSSIER_DE_SANT_ANIMAL
+Catégorie;Sous-acte;AMV;regex_pattern;code_acte
+Consultation et diagnostic;Consultation générale;1;"(?i)\\bconsult(?:ation)?\\s+générale\\b";CONSULTATION_ET_DIAGNOSTIC_CONSULTATION_GENERALE
+Consultation et diagnostic;Consultation d’urgence;1;"(?i)\\bconsult(?:ation)?\\s+d['’]?urgence\\b";CONSULTATION_ET_DIAGNOSTIC_CONSULTATION_D_URGENCE
+Consultation et diagnostic;Téléconsultation;1;"(?i)\\bt[eé]l[eé]consult(?:ation)?\\b";CONSULTATION_ET_DIAGNOSTIC_TELECONSULTATION
+Consultation et diagnostic;"Examen clinique (palpation; auscultation; température)";1;"(?i)\\bexamen\\s+clinique\\b|\\bpalpation\\b|\\bauscultation\\b|\\btemp[ée]rature\\b";CONSULTATION_ET_DIAGNOSTIC_EXAMEN_CLINIQUE
+Consultation et diagnostic;Prélèvement sanguin diagnostique;1;"(?i)\\bpr[eé]l[eè]vement\\s+sanguin\\b|\\bdiagnostique\\b";CONSULTATION_ET_DIAGNOSTIC_PRELEVEMENT_SANGUIN
+Consultation et diagnostic;Prélèvement d’urine diagnostique;1;"(?i)\\bpr[eé]l[eè]vement\\s+d['’]?urine\\b";CONSULTATION_ET_DIAGNOSTIC_PRELEVEMENT_URINE
+Consultation et diagnostic;Prélèvement de selles diagnostique;1;"(?i)\\bpr[eé]l[eè]vement\\s+de\\s+selles\\b";CONSULTATION_ET_DIAGNOSTIC_PRELEVEMENT_SELLES
+Consultation et diagnostic;Numération-formule sanguine;1;"(?i)\\bnum[eé]ration[-\\s]?formule\\b|\\bh[ée]mogramme\\b";CONSULTATION_ET_DIAGNOSTIC_NUMERATION_FORMULE
+Consultation et diagnostic;Biochimie sanguine;1;"(?i)\\bbiochimie\\s+sanguine\\b";CONSULTATION_ET_DIAGNOSTIC_BIOCHIMIE_SANGUINE
+Consultation et diagnostic;Sérologie infectieuse;1;"(?i)\\bse[é]rologie\\b.+infectieuse\\b";CONSULTATION_ET_DIAGNOSTIC_SEROLOGIE_INFECTIEUSE
+Consultation et diagnostic;PCR diagnostic;1;"(?i)\\bPCR\\b|\\bpolymerase\\s+chain\\s+reaction\\b";CONSULTATION_ET_DIAGNOSTIC_PCR
+Consultation et diagnostic;Radiographie (thorax);1;"(?i)\\bradiographie\\s*(?:thorax)\\b|\\bradio\\s+thorax\\b";CONSULTATION_ET_DIAGNOSTIC_RADIOGRAPHIE_THORAX
+Consultation et diagnostic;Radiographie (abdomen);1;"(?i)\\bradiographie\\s*(?:abdomen)\\b|\\bradio\\s+abdomen\\b";CONSULTATION_ET_DIAGNOSTIC_RADIOGRAPHIE_ABDOMEN
+Consultation et diagnostic;Radiographie (os);1;"(?i)\\bradiographie\\s*os\\b|\\bradio\\s+os\\b";CONSULTATION_ET_DIAGNOSTIC_RADIOGRAPHIE_OS
+Consultation et diagnostic;Échographie abdominale;1;"(?i)\\b[eé]chographie\\s+abdominale\\b|\\becho\\s+abdo\\b";CONSULTATION_ET_DIAGNOSTIC_ECHOGRAPHIE_ABDOMINALE
+Consultation et diagnostic;Échographie cardiaque;1;"(?i)\\b[eé]chographie\\s+cardiaque\\b|\\becho\\s+cardio\\b";CONSULTATION_ET_DIAGNOSTIC_ECHOGRAPHIE_CARDIAQUE
+Consultation et diagnostic;Scanner (CT);1;"(?i)\\bscanner\\b|\\bCT\\b|\\bcomputed\\s+tomography\\b";CONSULTATION_ET_DIAGNOSTIC_SCANNER_CT
+Consultation et diagnostic;IRM;1;"(?i)\\bIRM\\b|\\bimagerie\\s+par\\s+r[eé]sonance\\b";CONSULTATION_ET_DIAGNOSTIC_IRM
+Consultation et diagnostic;Gastroscopie;1;"(?i)\\bgastroscopie\\b|\\bfibroscopie\\s+œsophagienne\\b";CONSULTATION_ET_DIAGNOSTIC_GASTROSCOPIE
+Consultation et diagnostic;Rhinoscopie;1;"(?i)\\brhinoscopie\\b";CONSULTATION_ET_DIAGNOSTIC_RHINOSCOPIE
+Consultation et diagnostic;Bronchoscopie;1;"(?i)\\bbronchoscopie\\b";CONSULTATION_ET_DIAGNOSTIC_BRONCHOSCOPIE
+Consultation et diagnostic;Cœlioscopie (laparoscopie);1;"(?i)\\bco[ée]lioscopie\\b|\\blaparoscopie\\b";CONSULTATION_ET_DIAGNOSTIC_COELIOSCOPIE
+Consultation et diagnostic;Cytopathologie;1;"(?i)\\bcytopathologie\\b";CONSULTATION_ET_DIAGNOSTIC_CYTOPATHOLOGIE
+Consultation et diagnostic;Biopsie cutanée;1;"(?i)\\bbiopsie\\s+cutan[ée]\\b";CONSULTATION_ET_DIAGNOSTIC_BIOPSIE_CUTANEE
+Consultation et diagnostic;Biopsie tissulaire;1;"(?i)\\bbiopsie\\s+tissulaire\\b";CONSULTATION_ET_DIAGNOSTIC_BIOPSIE_TISSULAIRE
+Consultation et diagnostic;Électrocardiogramme (ECG);1;"(?i)\\b(electrocardiogramme|ECG)\\b";CONSULTATION_ET_DIAGNOSTIC_ELECTROCARDIOGRAMME
+Consultation et diagnostic;Doppler (échocardiographie);1;"(?i)\\bDoppler\\b|\\b[eé]chocardiographie\\b";CONSULTATION_ET_DIAGNOSTIC_DOPPLER
+Consultation et diagnostic;Épreuve d’effort;1;"(?i)\\b[eé]preuve\\s+d[’]?effort\\b";CONSULTATION_ET_DIAGNOSTIC_EPREUVE_EFFORT
+Préventif;Visite annuelle;1;"(?i)\\bvisite\\s+annuelle\\b";PREVENTIF_VISITE_ANNUELLE
+Préventif;Bilan gériatrique;1;"(?i)\\bbilan\\s+g[eé]riatrique\\b";PREVENTIF_BILAN_GERIATRIQUE
+Préventif;"Plan de vaccination (rage; parvovirose…)";1;"(?i)\\bplan\\s+de\\s+vaccination\\b|\\bvaccination\\b";PREVENTIF_PLAN_VACCINATION
+Préventif;Stérilisation ovariectomie;1;"(?i)\\bst[ée]rilisation\\s+ovari(?:ectomie|otomie)\\b";PREVENTIF_STERILISATION_OVARIECTOMIE
+Préventif;Stérilisation castration;1;"(?i)\\bst[ée]rilisation\\s+castration\\b|\\borchidectomie\\b";PREVENTIF_STERILISATION_CASTRATION
+Préventif;Implantation de puce électronique;1;"(?i)\\bimplantation\\s+de\\s+puce\\b|\\bpuce\\s+electronique\\b";PREVENTIF_IMPLANTATION_PUCE
+Préventif;Tatouage d’identification;1;"(?i)\\btatouage\\b|\\bidentification\\b";PREVENTIF_TATOUAGE
+Préventif;Vermifugation interne;1;"(?i)\\bvermifugation\\s+interne\\b";PREVENTIF_VERMIFUGATION_INTERNE
+Préventif;"Traitement antiparasitaire externe (puces; tiques)";1;"(?i)\\btraitement\\s+antiparasitaire\\b|\\bpuces\\b|\\btiques\\b";PREVENTIF_ANTIPARASITAIRE
+Préventif;Conseil diététique et nutritionnel;1;"(?i)\\bconseil\\s+di[eé]t[eé]tique\\b|\\bnutritionnel\\b";PREVENTIF_CONSEIL_DIETETIQUE
+Chirurgical;Chirurgie des tissus mous – mastectomie;5;"(?i)\\bmastectomie\\b";CHIRURGICAL_MASTECTOMIE
+Chirurgical;Chirurgie des tissus mous – ablation de tumeur;5;"(?i)\\b(ablation\\s+de\\s+tumeur|chirurgie\\s+des\\s+tissus\\s+mous)\\b";CHIRURGICAL_ABLATION_TUMEUR
+Chirurgical;Chirurgie abdominale – entérotomie;5;"(?i)\\bent[eé]rotomie\\b";CHIRURGICAL_ENTEROTOMIE
+Chirurgical;Chirurgie abdominale – cholécystectomie;5;"(?i)\\bchol[eé]cystectomie\\b";CHIRURGICAL_CHOLECYSTECTOMIE
+Chirurgical;Chirurgie orthopédique – ostéosynthèse;5;"(?i)\\bost[eé]osynth[eè]se\\b";CHIRURGICAL_OSTEOSYNTHESE
+Chirurgical;Chirurgie orthopédique – ligamentoplastie;5;"(?i)\\bligamentoplastie\\b";CHIRURGICAL_LIGAMENTOPLASTIE
+Chirurgical;Chirurgie thoracique – thoracotomie;5;"(?i)\\bthoracotomie\\b";CHIRURGICAL_THORACOTOMIE
+Chirurgical;Neurochirurgie – laminectomie;5;"(?i)\\blaminectomie\\b";CHIRURGICAL_LAMINECTOMIE
+Chirurgical;Chirurgie oculaire – extraction de cataracte;5;"(?i)\\bextraction\\s+de\\s+cataracte\\b";CHIRURGICAL_EXTRACTION_CATARACTE
+Chirurgical;Chirurgie oculaire – entropion;5;"(?i)\\bentropion\\b";CHIRURGICAL_ENTROPION
+Chirurgical;Chirurgie oculaire – ectropion;5;"(?i)\\bectropion\\b";CHIRURGICAL_ECTROPION
+Chirurgical;Chirurgie oculaire – greffe de cornée;5;"(?i)\\bgreffe\\s+de\\s+corn[eée]\\b";CHIRURGICAL_GREFFE_CORNEE
+Chirurgical;Césarienne programmée;5;"(?i)\\bc[eé]sarienne\\s+programm[eée]\\b";CHIRURGICAL_CESARIENNE
+Chirurgical;Chirurgie d’urgence polytraumatisme;5;"(?i)\\b(polytraumatisme|chirurgie\\s+d['’]?urgence)\\b";CHIRURGICAL_URGENCE_POLYTRAUMATISME
+Anesthésie et douleur;Anesthésie générale inhalée;1;"(?i)\\banesth[eé]sie\\s+g[eé]n[eé]rale\\s+inhal[eée]\\b";ANESTHESIE_INHALEE
+Anesthésie et douleur;Anesthésie générale injectable;1;"(?i)\\banesth[eé]sie\\s+g[eé]n[eé]rale\\s+injectable\\b";ANESTHESIE_INJECTABLE
+Anesthésie et douleur;Anesthésie locorégionale – bloc nerveux;1;"(?i)\\banesth[eé]sie\\s+locorégionale\\b|\\bbloc\\s+nerveux\\b";ANESTHESIE_BLOC_NERVEUX
+Anesthésie et douleur;Anesthésie locorégionale – rachianesthésie;1;"(?i)\\brachianesth[eé]sie\\b";ANESTHESIE_RACHIANESTHESIE
+Anesthésie et douleur;"Analgesie multimodale (morphiniques; AINS…)";1;"(?i)\\banalgesie\\s+multimodale\\b|\\bmorphiniques\\b|\\bAINS\\b";ANALGESIE_MULTIMODALE
+Anesthésie et douleur;Surveillance péri-opératoire (monitoring cardiaque);1;"(?i)\\bsurveillance\\s+p[eé]ri[-]?op[eé]ratoire\\b|\\bmonitoring\\s+cardiaque\\b";SURVEILLANCE_PERIOPERATOIRE
+Anesthésie et douleur;Surveillance post-opératoire (capnographie);1;"(?i)\\bsurveillance\\s+post[-]?op[eé]ratoire\\b|\\bcapnographie\\b";SURVEILLANCE_POSTOP
+Hospitalisation et soins intensifs;Perfusion intraveineuse;1;"(?i)\\bperfusion\\s+intraveineuse\\b";PERFUSION_INTRAVEINEUSE
+Hospitalisation et soins intensifs;Perfusion entérale;1;"(?i)\\bperfusion\\s+ent[eé]rale\\b";PERFUSION_ENTERALE
+Hospitalisation et soins intensifs;Oxygénothérapie;1;"(?i)\\boxyg[eé]noth[eé]rapie\\b";OXYGENOTHERAPIE
+Hospitalisation et soins intensifs;Surveillance ECG continue;1;"(?i)\\bsurveillance\\s+ECG\\b|\\bcontinue\\b";SURVEILLANCE_ECG_CONTINUE
+Hospitalisation et soins intensifs;Surveillance SpO₂;1;"(?i)\\bSpO₂\\b|\\bSaturation\\s+O₂\\b";SURVEILLANCE_SPO2
+Hospitalisation et soins intensifs;Surveillance pression artérielle;1;"(?i)\\bpression\\s+art[ée]rielle\\b";SURVEILLANCE_PRESSION_ARTERIELLE
+Hospitalisation et soins intensifs;Nutrition parentérale;1;"(?i)\\bnutrition\\s+parent[eé]rale\\b";NUTRITION_PARENTERALE
+Hospitalisation et soins intensifs;Assistance ventilatoire;1;"(?i)\\bassistance\\s+ventilatoire\\b";ASSISTANCE_VENTILATOIRE
+Reproduction et gynécologie;Échographie de gestation;1;"(?i)\\b[eé]chographie\\s+de\\s+gestation\\b";ECHOGRAPHIE_GESTATION
+Reproduction et gynécologie;Insémination artificielle;1;"(?i)\\bins[eé]mination\\s+artificielle\\b";INSEMINATION_ARTIFICIELLE
+Reproduction et gynécologie;Diagnostic de fertilité;1;"(?i)\\bdiagnostic\\s+de\\s+fertilit[eé]\\b";DIAGNOSTIC_FERTILITE
+Reproduction et gynécologie;Assistance à la mise bas;1;"(?i)\\bassistance\\s+à\\s+la\\s+mise\\s+bas\\b";ASSISTANCE_MISE_AU_MONDE
+Reproduction et gynécologie;Césarienne en urgence;5;"(?i)\\bc[eé]sarienne\\s+en\\s+urgence\\b";CESARIENNE_URGENCE
+Dentisterie;Détartrage;1;"(?i)\\bd[eé]tartrage\\b";DETARTRAGE
+Dentisterie;Polissage dentaire;1;"(?i)\\bpolissage\\s+dentaire\\b";POLISSAGE_DENTAIRE
+Dentisterie;Extraction dentaire;1;"(?i)\\bextraction\\s+dentaire\\b";EXTRACTION_DENTAIRE
+Dentisterie;Ostéotomie maxillaire/mandibulaire;5;"(?i)\\bost[eé]otomie\\s+maxillaire\\b|\\bmandibulaire\\b";OSTEOTOMIE_MAXILLAIRE
+Dentisterie;Correction orthodontique;1;"(?i)\\borthodontique\\b|\\bcorrection\\b";CORRECTION_ORTHODONTIQUE
+Dermatologie et ORL;Biopsie cutanée;1;"(?i)\\bbiopsie\\s+cutan[ée]\\b";BIOPSIE_CUTANEE
+Dermatologie et ORL;Greffe de peau;5;"(?i)\\bgreffe\\s+de\\s+peau\\b";GREFFE_DE_PEAU
+Dermatologie et ORL;Traitement d’otite (lavage);1;"(?i)\\botite\\b|\\blavage\\b";TRAITEMENT_OTITE
+Dermatologie et ORL;Examen otoscopique;1;"(?i)\\botoscopie\\b|\\bexamen\\s+oto\\b";EXAMEN_OTOSCOPIQUE
+Dermatologie et ORL;Laserthérapie cutanée;1;"(?i)\\blaserth[eé]rapie\\b";LASEROTHERAPIE
+Dermatologie et ORL;Cryothérapie cutanée;1;"(?i)\\bcryoth[eé]rapie\\b";CRYOTHERAPIE
+Ophtalmologie;Tonométrie;1;"(?i)\\btonom[eé]trie\\b";TONOMETRIE
+Ophtalmologie;Examen du fond d’œil;1;"(?i)\\bfond\\s+d[’]?œil\\b|\\boeil\\b";EXAMEN_FOND_OIL
+Ophtalmologie;Chirurgie de la cataracte;5;"(?i)\\bchirurgie\\s+de\\s+cataracte\\b";CHIRURGIE_CATARACTE
+Ophtalmologie;Kératoplastie;5;"(?i)\\bk[ée]ratoplastie\\b";KERATOPLASTIE
+Physiothérapie et rééducation;Hydrothérapie;1;"(?i)\\bhydroth[eé]rapie\\b";HYDROTHERAPIE
+Physiothérapie et rééducation;Électrothérapie;1;"(?i)\\b[eé]lectroth[eé]rapie\\b";ELECTROTHERAPIE
+Physiothérapie et rééducation;Mobilisations passives;1;"(?i)\\bmobilisations\\s+passives\\b";MOBILISATIONS_PASSIVES
+Physiothérapie et rééducation;Exercices de proprioception;1;"(?i)\\bproprioception\\b";EXERCICES_PROPRIOCEPTION
+Physiothérapie et rééducation;Massages thérapeutiques;1;"(?i)\\bmassages?\\s+th[eé]rapeutiques\\b";MASSAGES_THERAPEUTIQUES
+Biologie et laboratoire;Culture bactérienne;1;"(?i)\\bculture\\s+bact[ée]rienne\\b";CULTURE_BACTERIENNE
+Biologie et laboratoire;Antibiogramme;1;"(?i)\\bantibiogramme\\b";ANTIBIOGRAMME
+Biologie et laboratoire;Cytologie;1;"(?i)\\bcytologie\\b";CYTOLOGIE
+Biologie et laboratoire;Histopathologie;1;"(?i)\\bhistopathologie\\b";HISTOPATHOLOGIE
+Urgences et premiers secours;Suture de plaies;1;"(?i)\\bsuture\\s+de\\s+plaies\\b";SUTURE_PLAIES
+Urgences et premiers secours;Gestion des brûlures;1;"(?i)\\bbr[ûu]lures\\b|\\bgestion\\b";GESTION_BRULURES
+Urgences et premiers secours;Stabilisation de polytraumatismes;1;"(?i)\\bstabilisation\\b|\\bpolytraumatisme\\b";STABILISATION_POLYTRAUMATISMES
+Soins palliatifs et fin de vie;Évaluation de la douleur chronique;1;"(?i)\\bdouleur\\s+chronique\\b|\\b[eé]valuation\\b";EVALUATION_DOULEUR_CHRONIQUE
+Soins palliatifs et fin de vie;Protocole d’euthanasie intraveineuse;1;"(?i)\\beuthanasie\\s+intraveineuse\\b";PROTOCOLE_EUTHANASIE_IV
+Soins palliatifs et fin de vie;Protocole d’euthanasie intramusculaire;1;"(?i)\\beuthanasie\\s+intramusculaire\\b";PROTOCOLE_EUTHANASIE_IM
+Médecines complémentaires;Acupuncture vétérinaire;1;"(?i)\\bacupuncture\\b";ACUPUNCTURE_VETERINAIRE
+Médecines complémentaires;Homéopathie vétérinaire;1;"(?i)\\bhom[eé]opathie\\b";HOMEOPATHIE_VETERINAIRE
+Médecines complémentaires;Phytothérapie vétérinaire;1;"(?i)\\bphytoth[eé]rapie\\b";PHYTOTHERAPIE_VETERINAIRE
+Médecines complémentaires;Ostéopathie animale;1;"(?i)\\bost[eé]opathie\\b";OSTEOPATHIE_ANIMALE
+Expertise et contrôle;Expertise judiciaire (maltraitance);1;"(?i)\\bexpertise\\s+judiciaire\\b|\\bmaltraitance\\b";EXPERTISE_JUDICIAIRE
+Expertise et contrôle;Expertise civile (litiges);1;"(?i)\\bexpertise\\s+civile\\b|\\blitiges\\b";EXPERTISE_CIVILE
+Expertise et contrôle;Inspection sanitaire d’élevages;1;"(?i)\\binspection\\s+sanitaire\\b|\\b[ée]levages\\b";INSPECTION_SANITAIRE
+Expertise et contrôle;Traçabilité et dossier de santé animal;1;"(?i)\\btra[cç]abilit[eé]\\b|\\bdossier\\s+de\\s+sant[ée]\\b";TRACABILITE_DOSSIER_SANTE_ANIMAL

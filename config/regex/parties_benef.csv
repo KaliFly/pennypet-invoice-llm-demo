@@ -1,12 +1,12 @@
 ﻿Catégorie;field_label;Définition;Variantes/Synonymes;regex_pattern
-Coordonnées Complètes;Vétérinaire / Clinique – Nom;Nom de la clinique ou du vétérinaire;VETO|CLINIQUE;(?i)^\sV[EÉ]T[EÉ]RINAIRE\b
-Coordonnées Complètes;Vétérinaire / Clinique – Adresse;Adresse complète de la clinique;ADRESSE;(?i)^\sADRESSE\b
-Coordonnées Complètes;Vétérinaire / Clinique – Téléphone / E-mail;Contacts téléphone et courriel;TEL|TÉLÉPHONE|EMAIL;(?i)^\sTEL\b
-Coordonnées Complètes;Propriétaire – Nom;Nom du propriétaire du patient;OWNER|PROPRIETAIRE;(?i)^\sOWNER\b
-Coordonnées Complètes;Propriétaire – Adresse;Adresse complète du propriétaire;ADRESSE\s+PROPRIETAIRE;(?i)^\sADRESSE\s+PROPRIETAIRE\b
-Coordonnées Complètes;Propriétaire – Téléphone / E-mail;Contacts du propriétaire;TEL|EMAIL;(?i)^\sTEL\b
-Coordonnées Complètes;Assureur – Nom de la police;Nom de l’assureur et type de contrat;ASSUREUR|POLICE;(?i)^\sASSUREUR\b
-Coordonnées Complètes;Assureur – Numéro de contrat;Référence du contrat d’assurance;N°\sCONTRAT;(?i)^\sN°\sCONTRAT\b
-Rôle et Statut;Titulaire (émetteur);Qui émet la facture;EMETTEUR|FACTURANT;(?i)^\sEMETTEUR\b
-Rôle et Statut;Bénéficiaire (client / tiers payeur);Destinataire de la facture;BÉNÉFICIAIRE|TIERS\sPAYEUR;(?i)^\sB[ÉE]N[EÉ]FICIAIRE\b
-Coordonnées Complètes;Animal – Nom, espèce et âge/naissance;Nom/prénom, espèce et date de naissance ou âge de l’animal;ANIMAL;(?i)(?P<owner>[A-Za-zÀ-ÖØ-öø-ÿ' -]+)?[;,\s–]*?(?P<nom>[A-Za-zÀ-ÖØ-öø-ÿ' -]+)?\s*(?:\((?P<id_anim>[A-Z0-9-]+)\))?\s*(?P<type>chien|chiot|chienne|chat|chaton|chatte|lapin|rongeur|furet)\s*(?P<sexe>mâle|femelle)?(?:[\s,;:-]+(?P<age>\d+\s*(?:ans?|mois?))|[\s,;:-]+(?P<dob>\d{2}/\d{2}/\d{4}))?
+Coordonnées Complètes;Vétérinaire / Clinique – Nom;Nom de la clinique ou du vétérinaire;VETO|CLINIQUE;"(?i)^\sV[EÉ]T[EÉ]RINAIRE\b"
+Coordonnées Complètes;Vétérinaire / Clinique – Adresse;Adresse complète de la clinique;ADRESSE;"(?i)^\sADRESSE\b"
+Coordonnées Complètes;Vétérinaire / Clinique – Téléphone / E-mail;Contacts téléphone et courriel;TEL|TÉLÉPHONE|EMAIL;"(?i)^\sTEL\b"
+Coordonnées Complètes;Propriétaire – Nom;Nom du propriétaire du patient;OWNER|PROPRIETAIRE;"(?i)^\sOWNER\b"
+Coordonnées Complètes;Propriétaire – Adresse;Adresse complète du propriétaire;ADRESSE\s+PROPRIETAIRE;"(?i)^\sADRESSE\s+PROPRIETAIRE\b"
+Coordonnées Complètes;Propriétaire – Téléphone / E-mail;Contacts du propriétaire;TEL|EMAIL;"(?i)^\sTEL\b"
+Coordonnées Complètes;Assureur – Nom de la police;Nom de l’assureur et type de contrat;ASSUREUR|POLICE;"(?i)^\sASSUREUR\b"
+Coordonnées Complètes;Assureur – Numéro de contrat;Référence du contrat d’assurance;N°\sCONTRAT;"(?i)^\sN°\sCONTRAT\b"
+Rôle et Statut;Titulaire (émetteur);Qui émet la facture;EMETTEUR|FACTURANT;"(?i)^\sEMETTEUR\b"
+Rôle et Statut;Bénéficiaire (client / tiers payeur);Destinataire de la facture;BÉNÉFICIAIRE|TIERS\sPAYEUR;"(?i)^\sB[ÉE]N[EÉ]FICIAIRE\b"
+Coordonnées Complètes;Animal – Nom, espèce et âge/naissance;Nom/prénom, espèce et date de naissance ou âge de l’animal;ANIMAL;"(?i)(?P<owner>[A-Za-zÀ-ÖØ-öø-ÿ' -]+)?[;,\s–]*?(?P<nom>[A-Za-zÀ-ÖØ-öø-ÿ' -]+)?\s*(?:\((?P<id_anim>[A-Z0-9-]+)\))?\s*(?P<type>chien|chiot|chienne|chat|chaton|chatte|lapin|rongeur|furet)\s*(?P<sexe>mâle|femelle)?(?:[\s,;:-]+(?P<age>\d+\s*(?:ans?|mois?))|[\s,;:-]+(?P<dob>\d{2}/\d{2}/\d{4}))?"

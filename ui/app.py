@@ -1,12 +1,6 @@
 import sys, os
-print("PYTHONPATH:", sys.path)
-print("Contenu racine:", os.listdir(os.path.dirname(__file__) + "/.."))
-try:
-    from openrouter_client import OpenRouterClient
-    print("Import OK")
-except Exception as e:
-    print("Import FAIL:", e)
-    raise
+# ajoute la racine du projet (parent de ui/) en première position
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import streamlit as st
 import json
