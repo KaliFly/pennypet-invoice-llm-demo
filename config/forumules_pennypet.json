@@ -1,0 +1,26 @@
+{
+  "START": {
+    "type": "accident_uniquement",
+    "remboursement": 0,
+    "plafond": 500,
+    "description": "Fonds d'urgence accident"
+  },
+  "PREMIUM": {
+    "type": "accident_uniquement",
+    "remboursement": 100,
+    "plafond": 500,
+    "description": "500€ remboursés en cas d'accident"
+  },
+  "INTEGRAL": {
+    "type": "accident_et_maladie",
+    "remboursement": 50,
+    "plafond": 1000,
+    "description": "50% des frais vétérinaires"
+  },
+  "INTEGRAL_PLUS": {
+    "type": "accident_et_maladie",
+    "remboursement": 100,
+    "plafond": 1000,
+    "description": "100% des frais vétérinaires"
+  }
+}

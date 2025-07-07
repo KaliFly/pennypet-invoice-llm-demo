@@ -1,70 +1,56 @@
-# config/pennypet_config.py
-import os
-import json
 import pandas as pd
+import re
 from pathlib import Path
 
 class PennyPetConfig:
-    def __init__(self):
-        self.config_dir = Path(__file__).parent
-        self.lexiques_dir = self.config_dir / "lexiques"
-        
-    def load_pennypet_mapping(self):
-        """Charge la configuration de mapping AMV vers PennyPet"""
-        mapping_file = self.lexiques_dir / "mapping_amv_pennypet.json"
-        
-        if mapping_file.exists():
-            with open(mapping_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        else:
-            # Configuration par défaut si le fichier n'existe pas
-            return self._get_default_mapping()
-    
-    def _get_default_mapping(self):
-        """Configuration par défaut basée sur vos fichiers"""
-        return {
-            "mapping_amv_pennypet": {
-                "1": {
-                    "description": "Actes courants",
-                    "taux_integral": 50,
-                    "taux_integral_plus": 100,
-                    "plafond_annuel": 1000,
-                    "eligible_integral": True,
-                    "eligible_integral_plus": True
-                },
-                "5": {
-                    "description": "Actes chirurgicaux",
-                    "taux_integral": 50,
-                    "taux_integral_plus": 100,
-                    "plafond_annuel": 1000,
-                    "eligible_integral": True,
-                    "eligible_integral_plus": True
-                }
-            },
-            "formules_pennypet": {
-                "START": {"type": "accident", "remboursement": 0, "plafond": 500},
-                "PREMIUM": {"type": "accident", "remboursement": 100, "plafond": 500},
-                "INTEGRAL": {"type": "complet", "remboursement": 50, "plafond": 1000},
-                "INTEGRAL_PLUS": {"type": "complet", "remboursement": 100, "plafond": 1000}
-            }
-        }
-    
-    def load_actes_data(self):
-        """Charge et nettoie vos données d'actes"""
-        actes_file = self.lexiques_dir / "actes.csv"
-        
-        # Charge le CSV avec le bon séparateur
-        df = pd.read_csv(actes_file, sep=';', encoding='utf-8')
-        
-        # Nettoie les données si nécessaire
-        df.columns = [col.strip() for col in df.columns]
-        
-        return df
-    
-    def load_medicaments_data(self):
-        """Charge vos données de médicaments"""
-        medicaments_file = self.lexiques_dir / "medicaments.csv"
-        return pd.read_csv(medicaments_file, encoding='utf-8')
+    def __init__(self, base_dir: Path = Path(__file__).parent.parent):
+        self.base_dir      = base_dir
+        self.config_dir    = base_dir / "config"
+        self.lexiques_dir  = self.config_dir / "lexiques"
 
-# Instance globale pour faciliter l'import
-pennypet_config = PennyPetConfig()
+        # Lexiques OCR
+        self.actes_df            = self._load_csv_regex("lexiques/actes_normalises.csv", sep=";")
+        self.medicaments_df      = self._load_csv_regex("lexiques/medicaments.csv", sep=";")
+        self.calculs_codes_df    = self._load_csv_regex("lexiques/calculs_codes_int.csv", sep=";")
+        self.infos_financieres_df= self._load_csv_regex("lexiques/infos_financieres.csv", sep=";")
+        self.metadonnees_df      = self._load_csv_regex("lexiques/metadonnees.csv", sep=";", quotechar='"')
+        self.parties_benef_df    = self._load_csv_regex("lexiques/parties_benef.csv", sep=";")
+        self.suivi_sla_df        = self._load_csv_regex("lexiques/suivi_SLA.csv", sep=";")
+
+        # Règles et formules
+        self.regles_pc_df        = self._load_regles("regles_prise_en_charge.csv", sep=";")
+        self.mapping_amv         = self._load_json("mapping_amv_pennypet.json")
+        self.formules            = self._load_json("formules_pennypet.json")
+
+    def _load_json(self, filename: str) -> dict:
+        path = self.config_dir / filename
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+
+    def _load_csv(self, relpath: str, **kwargs) -> pd.DataFrame:
+        path = self.config_dir / relpath
+        return pd.read_csv(path, encoding="utf-8", **kwargs)
+
+    def _load_csv_regex(self, relpath: str, **kwargs) -> pd.DataFrame:
+        df = self._load_csv(relpath, **kwargs)
+        # Renommage standard
+        df.columns = [c.strip() for c in df.columns]
+        for old, new in {
+            "Terme/Libellé":"field_label",
+            "Regex OCR":"regex_pattern",
+            "Variantes/Synonymes":"variantes"
+        }.items():
+            if old in df.columns:
+                df.rename(columns={old:new}, inplace=True)
+        # Compilation du pattern
+        if "regex_pattern" in df.columns:
+            df["pattern"] = df["regex_pattern"].apply(lambda p: re.compile(p, re.IGNORECASE))
+        return df
+
+    def _load_regles(self, relpath: str, **kwargs) -> pd.DataFrame:
+        df = self._load_csv(relpath, **kwargs)
+        # Colonnes listes
+        for col in ["exclusions","actes_couverts","conditions_speciales"]:
+            if col in df.columns:
+                df[col] = df[col].fillna("").apply(lambda s: s.split("|") if s else [])
+        return df

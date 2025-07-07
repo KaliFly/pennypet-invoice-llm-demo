@@ -1,11 +1,11 @@
-﻿"Terme/Libellé;Catégorie;Définition;Variantes/Synonymes;Regex OCR"
-"Référence facture;Numérotation & Références;Identifiant unique de la facture;REF FACTURE, N° FACTURE;^REF(?:E?RENCE)?\s*(?:FACTURE)?"
-"Référence devis / bon de commande;Numérotation & Références;Identifiant du devis ou du bon de commande;N° DEVIS, REF BON, BON COMMANDE;^N°\s*(?:DEVIS|BON(?:\s*COMMANDE)?)"
-"Référence dossier vétérinaire / dossier client;Numérotation & Références;Code interne du dossier patient ou client;REF DOSSIER, N° CLIENT, DOSSIER;^REF(?:\s*DOSSIER)?|^N°\s*CLIENT"
-"Date d’émission;Dates et Périodes;Date à laquelle la facture a été émise;ÉMIS LE, DATE FACTURATION;^DATE\s*EMISSION"
-"Date d’échéance;Dates et Périodes;Date limite de paiement;À PAYER AVANT, DUE DATE;^DATE\s*D['’]ECHEANCE"
-"Période de facturation (début/fin);Dates et Périodes;Intervalle couvert par la facturation;DU … AU …;^DU\s*\d{2}\/\d{2}\/\d{4}\s*AU"
-"Mentions obligatoires (RCS, TVA intracommunautaire, capital social);Mentions Légales;Informations légales requises (registre commerce, n° TVA, capital);RCS, SIREN, TVA INTRA, CAPITAL;^RCS|^SIREN|^TVA\s*INTRA|^CAPITAL"
-"Conditions générales de vente;Mentions Légales;Référence au document des CGV;CGV, CONDITIONS GENERALES;^CGV|^CONDITIONS\s*G[ÉE]N[ÉE]RALES"
-"Pénalités de retard;Mentions Légales;Montants et modalités appliqués en cas de retard de paiement;PENALITES, RETARD, INTÉRÊT LÉGAL;^P[EÉ]NALIT[EÉ]S|^RETARD"
-"Taux d’intérêt légal;Mentions Légales;Pourcentage légal applicable aux retards;TAUX INTÉRÊT, INTÉRÊT LÉGAL;^TAUX\s*INT[ÉE]R[ÊE]T"
+﻿Catégorie;field_label;Définition;Variantes/Synonymes;regex_pattern
+Numérotation & Références;Référence facture;Identifiant unique de la facture;REF FACTURE|N° FACTURE;(?i)^\sREF(?:E?RENCE)?\s(?:FACTURE)?\b
+Numérotation & Références;Référence devis / bon de commande;Identifiant du devis ou du bon de commande;N° DEVIS|REF BON|BON COMMANDE;(?i)^\sN°\s(?:DEVIS|BON(?:\sCOMMANDE)?)\b
+Numérotation & Références;Référence dossier vétérinaire / dossier client;Code interne du dossier patient ou client;REF DOSSIER|N° CLIENT|DOSSIER;(?i)^(?:REF(?:\sDOSSIER)?|N°\sCLIENT)\b
+Dates et Périodes;Date d’émission;Date à laquelle la facture a été émise;ÉMIS LE|DATE FACTURATION;(?i)^\sDATE\sEMISSION\b
+Dates et Périodes;Date d’échéance;Date limite de paiement;À PAYER AVANT|DUE DATE;(?i)^\sDATE\sD[’']ECHEANCE\b
+Dates et Périodes;Période de facturation (début/fin);Intervalle couvert par la facturation;DU … AU …;(?i)^\sDU\s*\d{2}/\d{2}/\d{4}\sAU\b
+Mentions Légales;Mentions obligatoires (RCS, TVA intracommunautaire, capital social);Informations légales requises (registre commerce, n° TVA, capital);RCS|SIREN|TVA INTRA|CAPITAL;(?i)^\s(?:RCS|SIREN|TVA\sINTRA|CAPITAL)\b
+Mentions Légales;Conditions générales de vente;Référence au document des CGV;CGV|CONDITIONS GENERALES;(?i)^\s(?:CGV|CONDITIONS\sG[ÉE]N[ÉE]RALES)\b
+Mentions Légales;Pénalités de retard;Montants et modalités appliqués en cas de retard de paiement;PENALITES|RETARD|INTÉRÊT LÉGAL;(?i)^\s(?:P[EÉ]NALIT[EÉ]S|RETARD)\b
+Mentions Légales;Taux d’intérêt légal;Pourcentage légal applicable aux retards;TAUX INTÉRÊT|INTÉRÊT LÉGAL;(?i)^\sTAUX\sINT[ÉE]R[ÊE]T\b

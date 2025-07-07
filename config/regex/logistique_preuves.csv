@@ -1,6 +1,6 @@
-Terme/Libellé;Catégorie;Définition;Variantes/Synonymes;Regex OCR
-Liens vers feuilles de soins;Preuves et Justificatifs;URL ou référence des feuilles de soins;FEUILLES DE SOINS, SOINS ONLINE;^(FEUILLES?\sDE\sSOINS)
-Ordonnances jointes;Preuves et Justificatifs;Références ou copies d’ordonnances;ORDONNANCE, PRESCRIPTION;^(ORDONNANCE)
-Bordereaux d’expédition / hospitalisation;Preuves et Justificatifs;Documents d’admission ou d’expédition d’échantillons;BORDEREAU, ADMISSION;^(BORDEREAU)
-Mode de livraison / réception;Mode de Livraison;Comment la facture ou documents ont été remis;REMISE EN MAIN PROPRE, ENVOI POSTAL;^(REMISE)
-Date et heure de remise;Mode de Livraison;Date et heure précises de la remise;LE … À …;^LE\s*\d{2}/\d{2}/\d{4}\s*À\s*\d{2}:\d{2}
+CatÃ©gorie;field_label;DÃ©finition;Variantes/Synonymes;regex_pattern
+Preuves et Justificatifs;Liens vers feuilles de soins;URL ou rÃ©fÃ©rence des feuilles de soins;FEUILLES DE SOINS|SOINS ONLINE;(?i)^\sFEUILLES?\s+DE\s+SOINS\b
+Preuves et Justificatifs;Ordonnances jointes;RÃ©fÃ©rences ou copies dâ€™ordonnances;ORDONNANCE|PRESCRIPTION;(?i)^\sORDONNANCE\b
+Preuves et Justificatifs;Bordereaux dâ€™expÃ©dition / hospitalisation;Documents dâ€™admission ou dâ€™expÃ©dition dâ€™Ã©chantillons;BORDEREAU|ADMISSION;(?i)^\sBORDEREAU\b
+Mode de Livraison;Mode de livraison / rÃ©ception;Comment la facture ou documents ont Ã©tÃ© remis;REMISE EN MAIN PROPRE|ENVOI POSTAL;(?i)^\sREMISE\b
+Mode de Livraison;Date et heure de remise;Date et heure prÃ©cises de la remise;LE \d{2}/\d{2}/\d{4} Ã  \d{2}:\d{2};(?i)^\sLE\s\d{2}/\d{2}/\d{4}\sÃ \s\d{2}:\d{2}\b
