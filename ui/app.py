@@ -1,3 +1,13 @@
+import sys, os
+print("PYTHONPATH:", sys.path)
+print("Contenu racine:", os.listdir(os.path.dirname(__file__) + "/.."))
+try:
+    from openrouter_client import OpenRouterClient
+    print("Import OK")
+except Exception as e:
+    print("Import FAIL:", e)
+    raise
+
 import streamlit as st
 import json
 from pathlib import Path
