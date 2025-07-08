@@ -10,3 +10,4 @@ openrouter-client
 supabase
 st-supabase-connection
 opencv-python-headless
+setuptools
