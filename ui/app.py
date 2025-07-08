@@ -1,4 +1,6 @@
 # app.py
+# Permet d’importer modules racine
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import sys
 import os
@@ -9,8 +11,6 @@ from ocr_module.ocr import OCRProcessor
 from llm_parser.pennypet_processor import PennyPetProcessor
 from st_supabase_connection import SupabaseConnection
 
-# Permet d’importer modules racine
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Configuration de la page
 st.set_page_config(page_title="PennyPet Invoice + DB", layout="wide")

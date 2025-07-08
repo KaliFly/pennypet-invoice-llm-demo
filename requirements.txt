@@ -6,6 +6,6 @@ openai>=1.0.0
 streamlit>=1.40.0,<2.0
 pandas>=2.2.3,<3.0
 python-dotenv==1.0.0
-openrouter_client
+openrouter-client
 supabase
 st-supabase-connection

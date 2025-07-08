@@ -17,15 +17,15 @@ class PennyPetProcessor:
         llm_provider: str = "qwen",
         parser: Optional[InvoiceParser] = None
     ):
-        # Injection de dépendances pour les tests ou création par défaut
+        # Dependency injection for tests or defaults
         self.config         = config or PennyPetConfig()
-        self.ocr            = ocr or OCRProcessor(lang="fra")
+        # Use PaddleOCR’s “french” model key
+        self.ocr            = ocr or OCRProcessor(lang="french")
         self.client_qwen    = client_qwen or OpenRouterClient(model_key="primary")
         self.client_mistral = client_mistral or OpenRouterClient(model_key="secondary")
-        # Choix du parser LLM : injection ou création selon llm_provider
         self.parser         = parser or InvoiceParser(provider=llm_provider)
 
-        # Chargement des ressources de configuration
+        # Load config resources
         self.mapping_amv    = self.config.mapping_amv
         self.formules       = self.config.formules
         self.actes_df       = self.config.actes_df
@@ -34,7 +34,7 @@ class PennyPetProcessor:
 
     def identifier_actes_sur_facture(self, texte_ocr: str) -> List[Dict]:
         """
-        Identifie les actes présents dans le texte OCR via les patterns compilés.
+        Identify acts present in OCR text via compiled regex patterns.
         """
         actes_detectes: List[Dict] = []
         for _, row in self.actes_df.iterrows():
@@ -44,17 +44,17 @@ class PennyPetProcessor:
             match = pattern.search(texte_ocr)
             if match:
                 actes_detectes.append({
-                    "categorie": row.get("Catégorie", ""),
-                    "sous_acte": row.get("Sous-acte", ""),
-                    "code_acte": row.get("code_acte", ""),
+                    "categorie":      row.get("Catégorie", ""),
+                    "sous_acte":      row.get("Sous-acte", ""),
+                    "code_acte":      row.get("code_acte", ""),
                     "ligne_detectee": match.group(0)
                 })
         return actes_detectes
 
     def extract_lignes(self, texte_ocr: str) -> Dict[str, Any]:
         """
-        Extrait via LLM les lignes de facture et le montant total.
-        Doit retourner {'lignes': [...], 'montant_total': float}
+        Use LLM to extract invoice lines and total amount.
+        Returns {'lignes': [...], 'montant_total': float}.
         """
         return self.parser.extract(texte_ocr)
 
@@ -62,14 +62,17 @@ class PennyPetProcessor:
         self, montant: float, code_acte: str, formule: str
     ) -> Dict[str, Any]:
         """
-        Calcule le remboursement pour un acte donné selon les règles de prise en charge.
-        Filtre par code_acte ou règle globale ('ALL').
+        Calculate reimbursement for a given act according to coverage rules.
+        Matches either global rules ('ALL') or specific code_acte entries.
         """
-        df = self.regles_pc_df
+        df = self.regles_pc_df.copy()
+        # Determine which rows apply: either global ALL or specific code in actes_couverts list
         mask = (
             (df["formule"] == formule) &
-            ((df.get("code_acte", ["ALL"])[0] == "ALL") |
-             (code_acte.isupper() and df["actes_couverts"].apply(lambda lst: code_acte in lst)))
+            (
+                df["code_acte"].fillna("ALL").eq("ALL") |
+                df["actes_couverts"].apply(lambda lst: code_acte in lst if isinstance(lst, list) else False)
+            )
         )
         regles = df[mask]
         if regles.empty:
@@ -98,10 +101,10 @@ class PennyPetProcessor:
         self, texte_ocr: str, formule: str
     ) -> Dict[str, Any]:
         """
-        Orchestrates the full pipeline:
-        1. identifier_actes_sur_facture
-        2. extract_lignes
-        3. calculer_remboursement_pennypet for each line
+        Full pipeline:
+          1. identifier_actes_sur_facture
+          2. extract_lignes
+          3. calculer_remboursement_pennypet for each extracted line
         """
         actes = self.identifier_actes_sur_facture(texte_ocr)
         extraction = self.extract_lignes(texte_ocr)
@@ -109,8 +112,8 @@ class PennyPetProcessor:
         remboursements: List[Dict] = []
 
         for ligne in lignes:
-            montant = ligne.get("montant_ht", 0.0)
-            code = ligne.get("code_acte", ligne.get("description", "ALL"))
+            montant = float(ligne.get("montant_ht", 0.0))
+            code = ligne.get("code_acte") or ligne.get("description", "ALL")
             remboursement = self.calculer_remboursement_pennypet(
                 montant=montant,
                 code_acte=code,
@@ -118,35 +121,35 @@ class PennyPetProcessor:
             )
             remboursements.append({**ligne, **remboursement})
 
-        total_montant = sum(l.get("montant_ht", 0.0) for l in lignes)
-        total_rembourse = sum(r.get("remboursement_final", 0.0) for r in remboursements)
+        total_montant = sum(float(l.get("montant_ht", 0.0)) for l in lignes)
+        total_rembourse = sum(float(r.get("remboursement_final", 0.0)) for r in remboursements)
 
         return {
-            "actes_detectes":        actes,
-            "extraction_lignes":     lignes,
-            "remboursements":        remboursements,
-            "total_facture":         total_montant,
-            "total_remboursement":   total_rembourse,
-            "reste_total_a_charge":  total_montant - total_rembourse,
-            "formule_utilisee":      formule
+            "actes_detectes":       actes,
+            "extraction_lignes":    lignes,
+            "remboursements":       remboursements,
+            "total_facture":        total_montant,
+            "total_remboursement":  total_rembourse,
+            "reste_total_a_charge": total_montant - total_rembourse,
+            "formule_utilisee":     formule
         }
 
     def process_facture_pennypet(
         self, file_bytes: bytes, formule_client: str, llm_provider: str = "qwen"
     ) -> Dict[str, Any]:
         """
-        Alias pour compatibilité :
-        1. OCR -> texte_ocr
-        2. process_facture avec formule_client
+        Alias for:
+          1. OCR → texte_ocr
+          2. process_facture with given formula
         """
         try:
-            texte = self.ocr.extract_text_from_pdf_bytes(file_bytes)
+            texte_ocr = self.ocr.extract_text_from_pdf_bytes(file_bytes)
         except Exception:
-            texte = self.ocr.extract_text_from_image_bytes(file_bytes)
+            texte_ocr = self.ocr.extract_text_from_image_bytes(file_bytes)
 
-        result = self.process_facture(texte, formule_client)
-        result["texte_ocr"] = texte
+        result = self.process_facture(texte_ocr, formule_client)
+        result["texte_ocr"] = texte_ocr
         return result
 
-# Instance globale pour usage direct
+# Global instance for direct usage
 pennypet_processor = PennyPetProcessor()
