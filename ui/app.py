@@ -1,10 +1,7 @@
 # app.py
-# Permet d’importer modules racine
+import sys, os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-import os
 import streamlit as st
 import json
 from openrouter_client import OpenRouterClient
@@ -12,23 +9,21 @@ from ocr_module.ocr import OCRProcessor
 from llm_parser.pennypet_processor import PennyPetProcessor
 from st_supabase_connection import SupabaseConnection
 
-
-# Configuration de la page
 st.set_page_config(page_title="PennyPet Invoice + DB", layout="wide")
 st.title("PennyPet – Extraction & Remboursement")
 
-# 1. Connexion à Supabase
+# 1. Connexion Supabase
 conn = st.connection("supabase", type=SupabaseConnection)
 
-# 2. Sélection du modèle IA
+# 2. Choix du modèle LLM
 provider = st.sidebar.selectbox("Modèle IA", ["qwen", "mistral"], index=0)
 
-# 3. Upload de la facture et saisie de l’ID animal
+# 3. Upload + ID animal
 uploaded = st.file_uploader("Déposez votre facture", type=["pdf","jpg","png"])
 animal_id = st.sidebar.text_input("ID Animal")
 
 if uploaded and animal_id:
-    # 4. Recherche du client en base
+    # 4. Requête contrat
     q = """
     SELECT proprietaire, animal, type_animal, date_naissance, identification, formule
       FROM contrats_animaux
@@ -44,9 +39,9 @@ if uploaded and animal_id:
     st.sidebar.markdown(f"**Animal :** {client['animal']} ({client['type_animal']})")
     st.sidebar.markdown(f"**Formule :** {client['formule']}")
 
-    # 5. Lecture OCR
+    # 5. OCR
     bytes_data = uploaded.read()
-    ocr = OCRProcessor(lang="fra")
+    ocr = OCRProcessor(lang="french")
     try:
         texte = ocr.extract_text_from_pdf_bytes(bytes_data)
     except Exception:
@@ -55,7 +50,7 @@ if uploaded and animal_id:
     st.subheader("Texte extrait (OCR)")
     st.text_area("OCR Output", texte, height=200)
 
-    # 6. Calcul de remboursement via le processor
+    # 6. Calcul via processor
     processor = PennyPetProcessor(llm_provider=provider)
     result = processor.process_facture_pennypet(
         file_bytes=bytes_data,
@@ -63,7 +58,7 @@ if uploaded and animal_id:
         llm_provider=provider
     )
 
-    # 7. Affichage des détails
+    # 7. Affichage
     st.subheader("Détails du remboursement")
     st.json({
         "lignes":          result["remboursements"],
@@ -71,7 +66,7 @@ if uploaded and animal_id:
         "reste_à_charge":  result["reste_total_a_charge"]
     })
 
-    # 8. Optionnel : enregistrement de l’opération
+    # 8. Enregistrement optionnel
     if st.button("Enregistrer le remboursement"):
         insert_q = """
         INSERT INTO remboursements (
@@ -82,12 +77,11 @@ if uploaded and animal_id:
         );
         """
         conn.query(insert_q, {
-          "id":          animal_id,
-          "facture":     result["total_facture"],
-          "rembourse":   result["total_remboursement"],
-          "reste":       result["reste_total_a_charge"]
+          "id":        animal_id,
+          "facture":   result["montant_total"],
+          "rembourse": result["total_remboursement"],
+          "reste":     result["reste_total_a_charge"]
         }).execute()
         st.success("Opération enregistrée en base.")
-
 else:
     st.info("Importez une facture et renseignez l’ID animal pour démarrer.")
