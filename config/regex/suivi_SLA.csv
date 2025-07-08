@@ -1,5 +1,5 @@
 ﻿Catégorie;field_label;Définition;Variantes/Synonymes;regex_pattern
-Suivi de Traitement;Statut de la facture;État de la facture (émise, payée, en litige, etc.);EMIS|EN COURS|PAYÉ|LITIGE;(?i)^\sEMIS\b
-Suivi de Traitement;Historique des relances;Dates et contenus des rappels envoyés;RELANCE|RAPPEL|MISE EN DEMEURE;(?i)^\sRELANCE\b
-Indicateurs de Performance;Délais de traitement;Temps entre émission et paiement ou clôture;DÉLAI TRAIT|DÉLAI PAIEMENT;(?i)^\sD[ÉE]LAI\b
-Indicateurs de Performance;Nombre de relances effectuées;Compteur des rappels envoyés;NB RELANCES|NOMBRE RELANCES;(?i)^\sNB\b
+Suivi de Traitement;Statut de la facture;État de la facture (émise, payée, en litige, etc.);EMIS|EN COURS|PAYÉ|LITIGE;(?i)^\s*(EMIS|EN\s*COURS|PAYÉ|LITIGE)\b
+Suivi de Traitement;Historique des relances;Dates et contenus des rappels envoyés;RELANCE|RAPPEL|MISE EN DEMEURE;(?i)^\s*(RELANCE|RAPPEL|MISE\s*EN\s*DEMEURE)\b
+Indicateurs de Performance;Délais de traitement;Temps entre émission et paiement ou clôture;DÉLAI\s*TRAIT|DÉLAI\s*PAIEMENT;(?i)^\s*(DÉLAI\s*TRAIT|DÉLAI\s*PAIEMENT)\b
+Indicateurs de Performance;Nombre de relances effectuées;Compteur des rappels envoyés;NB\s*RELANCES|NOMBRE\s*RELANCES;(?i)^\s*(NB\s*RELANCES|NOMBRE\s*RELANCES)\b
