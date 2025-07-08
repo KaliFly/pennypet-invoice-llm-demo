@@ -1,12 +1,8 @@
 # openrouter_client.py
 
-import os
-from dotenv import load_dotenv
+import streamlit as st
 import openai
 from typing import List, Dict, Any
-
-load_dotenv()
-
 
 class OpenRouterClient:
     """
@@ -15,13 +11,13 @@ class OpenRouterClient:
     """
 
     def __init__(self, model_key: str):
-        # Determine which API key and model to use
+        # Retrieve API key and model from Streamlit secrets
         if model_key == "primary":
-            api_key = os.getenv("OPENROUTER_API_KEY_QWEN")
-            self.model = os.getenv("MODEL_PRIMARY")
+            api_key = st.secrets["openrouter"]["API_KEY_QWEN"]
+            self.model = st.secrets["openrouter"].get("MODEL_PRIMARY", "qwen/qwen2.5-vl-32b-instruct:free")
         elif model_key == "secondary":
-            api_key = os.getenv("OPENROUTER_API_KEY_MISTRAL")
-            self.model = os.getenv("MODEL_SECONDARY")
+            api_key = st.secrets["openrouter"]["API_KEY_MISTRAL"]
+            self.model = st.secrets["openrouter"].get("MODEL_SECONDARY", "mistralai/mistral-small-3.2-24b-instruct:free")
         else:
             raise ValueError(f"Unknown model_key '{model_key}'. Use 'primary' or 'secondary'.")
 
