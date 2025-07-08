@@ -1,5 +1,8 @@
 # app.py
-import sys, os
+
+import sys
+import os
+# Permet d’importer les modules à la racine du projet
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import streamlit as st
@@ -9,17 +12,18 @@ from ocr_module.ocr import OCRProcessor
 from llm_parser.pennypet_processor import PennyPetProcessor
 from st_supabase_connection import SupabaseConnection
 
+# Configuration de la page
 st.set_page_config(page_title="PennyPet Invoice + DB", layout="wide")
 st.title("PennyPet – Extraction & Remboursement")
 
-# 1. Connexion Supabase
+# 1. Connexion à Supabase
 conn = st.connection("supabase", type=SupabaseConnection)
 
 # 2. Choix du modèle LLM
 provider = st.sidebar.selectbox("Modèle IA", ["qwen", "mistral"], index=0)
 
 # 3. Upload + ID animal
-uploaded = st.file_uploader("Déposez votre facture", type=["pdf","jpg","png"])
+uploaded = st.file_uploader("Déposez votre facture", type=["pdf", "jpg", "png"])
 animal_id = st.sidebar.text_input("ID Animal")
 
 if uploaded and animal_id:
