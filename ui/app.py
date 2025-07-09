@@ -48,27 +48,29 @@ if uploaded:
     nom_proprietaire = infos.get("nom_proprietaire")
     nom_animal = infos.get("nom_animal")
 
-    # 7. Recherche automatique dans la base
+    # 7. Recherche automatique dans la base via st-supabase-connection
     res = []
     if identification:
-        q = """
-        SELECT proprietaire, animal, type_animal, date_naissance, identification, formule
-          FROM contrats_animaux
-         WHERE identification = :id
-         LIMIT 1;
-        """
-        res = conn.query(q, {"id": identification}).execute().data
+        res = (
+            conn
+            .table("contrats_animaux")
+            .select("proprietaire,animal,type_animal,date_naissance,identification,formule")
+            .eq("identification", identification)
+            .limit(1)
+            .execute()
+            .data
+        )
     elif nom_proprietaire and nom_animal:
-        q = """
-        SELECT proprietaire, animal, type_animal, date_naissance, identification, formule
-          FROM contrats_animaux
-         WHERE proprietaire ILIKE :proprio AND animal ILIKE :animal
-         LIMIT 5;
-        """
-        res = conn.query(q, {
-            "proprio": f"%{nom_proprietaire}%",
-            "animal": f"%{nom_animal}%"
-        }).execute().data
+        res = (
+            conn
+            .table("contrats_animaux")
+            .select("proprietaire,animal,type_animal,date_naissance,identification,formule")
+            .ilike("proprietaire", f"%{nom_proprietaire}%")
+            .ilike("animal", f"%{nom_animal}%")
+            .limit(5)
+            .execute()
+            .data
+        )
 
     # 8. Sélection du contrat ou simulation
     if res and len(res) == 1:
@@ -105,20 +107,27 @@ if uploaded:
 
     # 11. Enregistrement optionnel (si contrat réel)
     if res and st.button("Enregistrer le remboursement"):
-        insert_q = """
-        INSERT INTO remboursements (
-          id_contrat, date_acte, montant_facture, montant_rembourse, reste_a_charge
-        ) VALUES (
-          (SELECT id FROM contrats_animaux WHERE identification=:id),
-          NOW(), :facture, :rembourse, :reste
-        );
-        """
-        conn.query(insert_q, {
-          "id":        client["identification"],
-          "facture":   result["total_facture"],
-          "rembourse": result["total_remboursement"],
-          "reste":     result["reste_total_a_charge"]
-        }).execute()
+        # Utiliser .table().insert() pour st-supabase-connection
+        _ = (
+            conn
+            .table("remboursements")
+            .insert([{
+                "id_contrat": (
+                    conn
+                    .table("contrats_animaux")
+                    .select("id")
+                    .eq("identification", client["identification"])
+                    .limit(1)
+                    .execute()
+                    .data[0]["id"]
+                ),
+                "date_acte": "now()",
+                "montant_facture": result["total_facture"],
+                "montant_rembourse": result["total_remboursement"],
+                "reste_a_charge": result["reste_total_a_charge"]
+            }])
+            .execute()
+        )
         st.success("Opération enregistrée en base.")
 else:
     st.info("Importez une facture pour démarrer l’analyse automatique et la simulation de remboursement.")
