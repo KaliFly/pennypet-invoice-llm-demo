@@ -2,12 +2,13 @@
 
 import streamlit as st
 import openai
-from typing import List, Dict, Any
+import base64
+from typing import List, Dict, Any, Optional, Union
 
 class OpenRouterClient:
     """
-    A thin wrapper around the OpenAI Python SDK that targets the OpenRouter.ai
-    API endpoint. Supports two providers (primary → Qwen, secondary → Mistral).
+    Wrapper for the OpenAI Python SDK targeting the OpenRouter.ai API endpoint.
+    Supports two providers (primary → Qwen, secondary → Mistral), including vision models.
     """
 
     def __init__(self, model_key: str):
@@ -24,7 +25,6 @@ class OpenRouterClient:
         if not api_key:
             raise ValueError(f"Missing API key for model_key={model_key!r}")
 
-        # Instantiate the OpenAI client pointed at OpenRouter
         self.client = openai.Client(
             api_key=api_key,
             base_url="https://openrouter.ai/api/v1"
@@ -32,15 +32,15 @@ class OpenRouterClient:
 
     def chat(
         self,
-        messages: List[Dict[str, str]],
+        messages: List[Dict[str, Union[str, list, dict]]],
         temperature: float = 0.1,
         max_tokens: int = 4000,
-        stop: List[str] = None
+        stop: Optional[List[str]] = None
     ) -> Any:
         """
         Send a chat completion request.
 
-        :param messages: List of {"role": "...", "content": "..."} dicts
+        :param messages: List of {"role": "...", "content": "..."} dicts (content can be str or list for vision)
         :param temperature: Sampling temperature
         :param max_tokens: Maximum number of tokens to generate
         :param stop: Optional list of stop sequences
@@ -56,4 +56,45 @@ class OpenRouterClient:
             params["stop"] = stop
 
         response = self.client.chat.completions.create(**params)
+        return response
+
+    def analyze_invoice_image(
+        self,
+        image_bytes: bytes,
+        formule_client: str,
+        temperature: float = 0.1,
+        max_tokens: int = 4000
+    ) -> Any:
+        """
+        Send an invoice image (PDF/JPG/PNG) to a vision LLM for extraction.
+        The prompt requests a structured JSON with all relevant fields.
+        """
+        image_base64 = base64.b64encode(image_bytes).decode("utf-8")
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "Vous êtes un expert en factures vétérinaires. "
+                    "À partir de l'image fournie, extrayez un JSON structuré avec :\n"
+                    "- texte_ocr : texte complet extrait\n"
+                    "- lignes : [{animal_uid, code_acte, description, montant_ht}]\n"
+                    "- montant_total : montant total HT\n"
+                    "- informations_client : {nom_proprietaire, nom_animal, identification, ...}\n"
+                    f"Formule d'assurance à prendre en compte : {formule_client}"
+                )
+            },
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "Analysez cette facture vétérinaire et extrayez toutes les informations selon le format JSON demandé."},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"}}
+                ]
+            }
+        ]
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens
+        )
         return response
