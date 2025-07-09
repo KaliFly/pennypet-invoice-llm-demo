@@ -30,25 +30,23 @@ if uploaded:
     bytes_data = uploaded.read()
     processor = PennyPetProcessor()
 
-    # 5. Extraction + Calcul via LLM Vision
-    with st.spinner("Analyse et calcul du remboursement en cours..."):
+    # 5. Extraction initiale (inclut infos_client) — on déstructure le tuple renvoyé
+    with st.spinner("Extraction des informations de la facture..."):
         try:
-            result = processor.process_facture_pennypet(
-                file_bytes=bytes_data,
-                formule_client="",  # vide pour laisser le LLM détecter ou simuler
-                llm_provider=provider
+            extraction, _raw = processor.extract_lignes_from_image(
+                bytes_data, formule="", llm_provider=provider
             )
         except Exception as e:
-            st.error(f"Erreur lors de l'analyse : {e}")
+            st.error(f"Erreur lors de l'extraction : {e}")
             st.stop()
 
     # 6. Récupération des infos client/animal extraites
-    infos = result.get("infos_client", {})
-    identification = infos.get("identification")
-    nom_proprietaire = infos.get("nom_proprietaire")
-    nom_animal = infos.get("nom_animal")
+    infos_client = extraction.get("informations_client", {})
+    identification = infos_client.get("identification")
+    nom_proprietaire = infos_client.get("nom_proprietaire")
+    nom_animal = infos_client.get("nom_animal")
 
-    # 7. Recherche automatique dans la base via st-supabase-connection
+    # 7. Recherche automatique dans la base
     res = []
     if identification:
         res = (
@@ -96,7 +94,19 @@ if uploaded:
     st.sidebar.markdown(f"**Animal :** {client.get('animal','')} ({client.get('type_animal','')})")
     st.sidebar.markdown(f"**Formule :** {client.get('formule','')}")
 
-    # 10. Affichage du résultat de remboursement
+    # 10. Extraction complète et calcul du remboursement
+    with st.spinner("Calcul du remboursement en cours..."):
+        try:
+            result = processor.process_facture_pennypet(
+                file_bytes=bytes_data,
+                formule_client=client["formule"],
+                llm_provider=provider
+            )
+        except Exception as e:
+            st.error(f"Erreur lors de l'analyse : {e}")
+            st.stop()
+
+    # 11. Affichage du résultat de remboursement
     st.subheader("Détails du remboursement")
     st.json({
         "lignes":          result["remboursements"],
@@ -105,9 +115,8 @@ if uploaded:
         "reste_à_charge":  result["reste_total_a_charge"]
     })
 
-    # 11. Enregistrement optionnel (si contrat réel)
+    # 12. Enregistrement optionnel (si contrat réel)
     if res and st.button("Enregistrer le remboursement"):
-        # Utiliser .table().insert() pour st-supabase-connection
         _ = (
             conn
             .table("remboursements")
