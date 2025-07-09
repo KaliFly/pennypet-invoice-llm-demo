@@ -5,10 +5,8 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import streamlit as st
-import json
-from openrouter_client import OpenRouterClient
-from llm_parser.pennypet_processor import PennyPetProcessor
 from st_supabase_connection import SupabaseConnection
+from llm_parser.pennypet_processor import PennyPetProcessor
 
 # Configuration de la page
 st.set_page_config(page_title="PennyPet Invoice + DB", layout="wide")
@@ -25,30 +23,32 @@ uploaded = st.file_uploader("Déposez votre facture", type=["pdf", "jpg", "png"]
 
 # 4. Possibles formules pour simulation
 formules_possibles = ["START", "PREMIUM", "INTEGRAL", "INTEGRAL_PLUS"]
-
 def select_formule():
     return st.sidebar.selectbox("Formule pour simulation", formules_possibles, index=0)
 
 if uploaded:
-    # 5. Extraction d'informations client/animal via LLM Vision
     bytes_data = uploaded.read()
     processor = PennyPetProcessor()
-    with st.spinner("Extraction des informations de la facture..."):
+
+    # 5. Extraction + Calcul via LLM Vision
+    with st.spinner("Analyse et calcul du remboursement en cours..."):
         try:
-            # Extraction initiale (inclut infos client/animal)
-            extraction = processor.extract_lignes_from_image(
-                bytes_data, formule="", llm_provider=provider
+            result = processor.process_facture_pennypet(
+                file_bytes=bytes_data,
+                formule_client="",  # vide pour laisser le LLM détecter ou simuler
+                llm_provider=provider
             )
         except Exception as e:
-            st.error(f"Erreur lors de l'extraction : {e}")
+            st.error(f"Erreur lors de l'analyse : {e}")
             st.stop()
 
-    infos_client = extraction.get("informations_client", {})
-    identification = infos_client.get("identification")
-    nom_proprietaire = infos_client.get("nom_proprietaire")
-    nom_animal = infos_client.get("nom_animal")
+    # 6. Récupération des infos client/animal extraites
+    infos = result.get("infos_client", {})
+    identification = infos.get("identification")
+    nom_proprietaire = infos.get("nom_proprietaire")
+    nom_animal = infos.get("nom_animal")
 
-    # 6. Recherche automatique dans la base
+    # 7. Recherche automatique dans la base
     res = []
     if identification:
         q = """
@@ -65,25 +65,23 @@ if uploaded:
          WHERE proprietaire ILIKE :proprio AND animal ILIKE :animal
          LIMIT 5;
         """
-        res = conn.query(q, {"proprio": f"%{nom_proprietaire}%", "animal": f"%{nom_animal}%"}).execute().data
+        res = conn.query(q, {
+            "proprio": f"%{nom_proprietaire}%",
+            "animal": f"%{nom_animal}%"
+        }).execute().data
 
-    # 7. Sélection du contrat ou simulation
+    # 8. Sélection du contrat ou simulation
     if res and len(res) == 1:
         client = res[0]
-        st.sidebar.markdown(f"**Propriétaire :** {client['proprietaire']}")
-        st.sidebar.markdown(f"**Animal :** {client['animal']} ({client['type_animal']})")
-        st.sidebar.markdown(f"**Formule :** {client['formule']}")
     elif res and len(res) > 1:
         choix = st.selectbox(
             "Plusieurs contrats trouvés, sélectionnez le bon :",
-            [f"{r['proprietaire']} - {r['animal']} ({r['identification']})" for r in res],
+            [f"{r['proprietaire']} - {r['animal']} ({r['identification']})" for r in res]
         )
-        client = res[[f"{r['proprietaire']} - {r['animal']} ({r['identification']})" for r in res].index(choix)]
-        st.sidebar.markdown(f"**Propriétaire :** {client['proprietaire']}")
-        st.sidebar.markdown(f"**Animal :** {client['animal']} ({client['type_animal']})")
-        st.sidebar.markdown(f"**Formule :** {client['formule']}")
+        idx = [f"{r['proprietaire']} - {r['animal']} ({r['identification']})" for r in res].index(choix)
+        client = res[idx]
     else:
-        st.warning("Aucun contrat trouvé en base pour ce client/animal. Sélectionnez une formule pour simuler la prise en charge.")
+        st.warning("Aucun contrat trouvé. Sélectionnez une formule pour simuler la prise en charge.")
         client = {
             "proprietaire": nom_proprietaire or "Simulation",
             "animal": nom_animal or "Simulation",
@@ -91,26 +89,21 @@ if uploaded:
             "formule": select_formule()
         }
 
-    # 8. Calcul via LLM Vision et affichage des résultats
-    with st.spinner("Analyse et calcul du remboursement..."):
-        try:
-            result = processor.process_facture_pennypet(
-                file_bytes=bytes_data,
-                formule_client=client["formule"],
-                llm_provider=provider
-            )
-        except Exception as e:
-            st.error(f"Erreur lors de l'analyse : {e}")
-            st.stop()
+    # 9. Affichage des infos client/animal
+    st.sidebar.markdown(f"**Propriétaire :** {client.get('proprietaire','')}")
+    st.sidebar.markdown(f"**Animal :** {client.get('animal','')} ({client.get('type_animal','')})")
+    st.sidebar.markdown(f"**Formule :** {client.get('formule','')}")
 
+    # 10. Affichage du résultat de remboursement
     st.subheader("Détails du remboursement")
     st.json({
         "lignes":          result["remboursements"],
+        "total_facture":   result["total_facture"],
         "total_remboursé": result["total_remboursement"],
         "reste_à_charge":  result["reste_total_a_charge"]
     })
 
-    # 9. Enregistrement optionnel (si contrat réel)
+    # 11. Enregistrement optionnel (si contrat réel)
     if res and st.button("Enregistrer le remboursement"):
         insert_q = """
         INSERT INTO remboursements (
