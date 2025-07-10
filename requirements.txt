@@ -1,7 +1,7 @@
-openai>=1.0.0
-streamlit>=1.40.0,<2.0
-pandas>=2.2.3,<3.0
+streamlit==1.46.1
+pandas==2.3.1
+openai==1.94.0
 python-dotenv==1.0.0
 openrouter-client
-supabase
-st-supabase-connection
+supabase==2.16.0
+st-supabase-connection==2.1.0
