@@ -90,12 +90,16 @@ class PennyPetProcessor:
 
         json_str = content[start:end+1]
 
+        # Vérification de la présence d'un JSON extrait
+        if not json_str:
+            raise ValueError(f"Impossible d'extraire un bloc JSON de la réponse LLM : {content!r}")
+
         try:
             data = json.loads(json_str)
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Impossible de parser le JSON extrait : {e}")
+        except Exception as e:
+            raise ValueError(f"Erreur lors du parsing JSON : {e}\nContenu reçu : {json_str!r}")
 
-        if "lignes" not in data or not isinstance(data["lignes"], list):
+        if not data or "lignes" not in data or not isinstance(data["lignes"], list):
             raise ValueError("Le LLM n'a pas extrait de lignes exploitables.")
 
         return data, content
