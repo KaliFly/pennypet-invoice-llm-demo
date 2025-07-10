@@ -2,12 +2,20 @@ import pandas as pd
 import re
 import json
 from pathlib import Path
- 
-# Chargement des secrets pour la connexion à Supabase
 import streamlit as st
+from st_supabase_connection import SupabaseConnection  # ou votre import existant
 
-url = st.secrets["DB_URL"]
-key = st.secrets["DB_KEY"]
+# Récupération des clés plates dans st.secrets
+supabase_url = st.secrets["SUPABASE_URL"]
+supabase_key = st.secrets["SUPABASE_KEY"]
+
+# Initialisation de la connexion Supabase
+conn = st.connection(
+    "supabase",
+    type=SupabaseConnection,
+    url=supabase_url,
+    key=supabase_key
+)
 
 
 class PennyPetConfig:
