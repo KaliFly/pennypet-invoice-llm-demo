@@ -1,5 +1,4 @@
 import json
-import re
 from typing import Dict, List, Any, Tuple
 from config.pennypet_config import PennyPetConfig
 from openrouter_client import OpenRouterClient
@@ -55,6 +54,26 @@ class PennyPetProcessor:
             "formule_utilisee": formule
         }
 
+    def _extract_json_blocks(self, text: str) -> List[str]:
+        """
+        Extraction robuste des blocs JSON dans un texte, sans récursion regex.
+        Utilise une méthode de comptage d'accolades.
+        """
+        blocks = []
+        stack = []
+        start = None
+        for i, c in enumerate(text):
+            if c == '{':
+                if not stack:
+                    start = i
+                stack.append(c)
+            elif c == '}':
+                if stack:
+                    stack.pop()
+                    if not stack and start is not None:
+                        blocks.append(text[start:i+1])
+        return blocks
+
     def extract_lignes_from_image(
         self,
         image_bytes: bytes,
@@ -70,8 +89,8 @@ class PennyPetProcessor:
         response = client.analyze_invoice_image(image_bytes, formule)
         content = response.choices[0].message.content
 
-        # Extraction robuste du JSON via regex (amélioration recommandée)
-        json_blocks = re.findall(r"\{(?:[^{}]|(?R))*\}", content, re.DOTALL)
+        # Extraction robuste du JSON via méthode de comptage d'accolades
+        json_blocks = self._extract_json_blocks(content)
         json_str = max(json_blocks, key=len) if json_blocks else None
 
         if not json_str:
