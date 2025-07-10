@@ -1,27 +1,29 @@
-# app.py
-
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
 import streamlit as st
 from st_supabase_connection import SupabaseConnection
 from llm_parser.pennypet_processor import PennyPetProcessor
 
-# Configuration de la page
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+# --- Configuration de la page ---
 st.set_page_config(page_title="PennyPet Invoice + DB", layout="wide")
 st.title("PennyPet – Extraction & Remboursement")
 
-# 1. Connexion à Supabase
-conn = st.connection("supabase", type=SupabaseConnection)
+# --- Connexion à Supabase ---
+try:
+    conn = st.connection("supabase", type=SupabaseConnection)
+except Exception as e:
+    st.error(f"Connexion Supabase impossible : {e}")
+    st.stop()
 
-# 2. Choix du modèle LLM Vision
+# --- Choix du modèle LLM Vision ---
 provider = st.sidebar.selectbox("Modèle Vision", ["qwen", "mistral"], index=0)
 
-# 3. Upload de la facture
+# --- Upload de la facture ---
 uploaded = st.file_uploader("Déposez votre facture", type=["pdf", "jpg", "png"])
 
-# 4. Possibles formules pour simulation
+# --- Formules pour simulation ---
 formules_possibles = ["START", "PREMIUM", "INTEGRAL", "INTEGRAL_PLUS"]
 def select_formule():
     return st.sidebar.selectbox("Formule pour simulation", formules_possibles, index=0)
@@ -30,47 +32,54 @@ if uploaded:
     bytes_data = uploaded.read()
     processor = PennyPetProcessor()
 
-    # 5. Extraction initiale (inclut infos_client) — on déstructure le tuple renvoyé
+    # --- Extraction initiale (infos client/animal) ---
     with st.spinner("Extraction des informations de la facture..."):
         try:
             extraction, _raw = processor.extract_lignes_from_image(
                 bytes_data, formule="", llm_provider=provider
             )
+        except ValueError as ve:
+            st.error(f"Format de réponse inattendu (JSON ou parsing) : {ve}")
+            st.stop()
         except Exception as e:
-            st.error(f"Erreur lors de l'extraction : {e}")
+            st.error(f"Erreur lors de l'extraction (réseau ou API) : {e}")
             st.stop()
 
-    # 6. Récupération des infos client/animal extraites
+    # --- Récupération des infos client/animal extraites ---
     infos_client = extraction.get("informations_client", {})
     identification = infos_client.get("identification")
     nom_proprietaire = infos_client.get("nom_proprietaire")
     nom_animal = infos_client.get("nom_animal")
 
-    # 7. Recherche automatique dans la base
+    # --- Recherche automatique dans la base ---
     res = []
-    if identification:
-        res = (
-            conn
-            .table("contrats_animaux")
-            .select("proprietaire,animal,type_animal,date_naissance,identification,formule")
-            .eq("identification", identification)
-            .limit(1)
-            .execute()
-            .data
-        )
-    elif nom_proprietaire and nom_animal:
-        res = (
-            conn
-            .table("contrats_animaux")
-            .select("proprietaire,animal,type_animal,date_naissance,identification,formule")
-            .ilike("proprietaire", f"%{nom_proprietaire}%")
-            .ilike("animal", f"%{nom_animal}%")
-            .limit(5)
-            .execute()
-            .data
-        )
+    try:
+        if identification:
+            res = (
+                conn
+                .table("contrats_animaux")
+                .select("proprietaire,animal,type_animal,date_naissance,identification,formule")
+                .eq("identification", identification)
+                .limit(1)
+                .execute()
+                .data
+            )
+        elif nom_proprietaire and nom_animal:
+            res = (
+                conn
+                .table("contrats_animaux")
+                .select("proprietaire,animal,type_animal,date_naissance,identification,formule")
+                .ilike("proprietaire", f"%{nom_proprietaire}%")
+                .ilike("animal", f"%{nom_animal}%")
+                .limit(5)
+                .execute()
+                .data
+            )
+    except Exception as e:
+        st.warning(f"Recherche Supabase impossible : {e}")
+        res = []
 
-    # 8. Sélection du contrat ou simulation
+    # --- Sélection du contrat ou simulation ---
     if res and len(res) == 1:
         client = res[0]
     elif res and len(res) > 1:
@@ -89,12 +98,12 @@ if uploaded:
             "formule": select_formule()
         }
 
-    # 9. Affichage des infos client/animal
+    # --- Affichage des infos client/animal ---
     st.sidebar.markdown(f"**Propriétaire :** {client.get('proprietaire','')}")
     st.sidebar.markdown(f"**Animal :** {client.get('animal','')} ({client.get('type_animal','')})")
     st.sidebar.markdown(f"**Formule :** {client.get('formule','')}")
 
-    # 10. Extraction complète et calcul du remboursement
+    # --- Extraction complète et calcul du remboursement ---
     with st.spinner("Calcul du remboursement en cours..."):
         try:
             result = processor.process_facture_pennypet(
@@ -102,11 +111,14 @@ if uploaded:
                 formule_client=client["formule"],
                 llm_provider=provider
             )
+        except ValueError as ve:
+            st.error(f"Erreur de parsing ou de validation JSON : {ve}")
+            st.stop()
         except Exception as e:
-            st.error(f"Erreur lors de l'analyse : {e}")
+            st.error(f"Erreur lors de l'analyse (réseau ou API) : {e}")
             st.stop()
 
-    # 11. Affichage du résultat de remboursement
+    # --- Affichage du résultat de remboursement ---
     st.subheader("Détails du remboursement")
     st.json({
         "lignes":          result["remboursements"],
@@ -115,28 +127,32 @@ if uploaded:
         "reste_à_charge":  result["reste_total_a_charge"]
     })
 
-    # 12. Enregistrement optionnel (si contrat réel)
+    # --- Enregistrement optionnel (si contrat réel) ---
     if res and st.button("Enregistrer le remboursement"):
-        _ = (
-            conn
-            .table("remboursements")
-            .insert([{
-                "id_contrat": (
-                    conn
-                    .table("contrats_animaux")
-                    .select("id")
-                    .eq("identification", client["identification"])
-                    .limit(1)
-                    .execute()
-                    .data[0]["id"]
-                ),
-                "date_acte": "now()",
-                "montant_facture": result["total_facture"],
-                "montant_rembourse": result["total_remboursement"],
-                "reste_a_charge": result["reste_total_a_charge"]
-            }])
-            .execute()
-        )
-        st.success("Opération enregistrée en base.")
+        try:
+            id_contrat = (
+                conn
+                .table("contrats_animaux")
+                .select("id")
+                .eq("identification", client["identification"])
+                .limit(1)
+                .execute()
+                .data[0]["id"]
+            )
+            _ = (
+                conn
+                .table("remboursements")
+                .insert([{
+                    "id_contrat": id_contrat,
+                    "date_acte": "now()",
+                    "montant_facture": result["total_facture"],
+                    "montant_rembourse": result["total_remboursement"],
+                    "reste_a_charge": result["reste_total_a_charge"]
+                }])
+                .execute()
+            )
+            st.success("Opération enregistrée en base.")
+        except Exception as e:
+            st.error(f"Erreur lors de l'enregistrement en base : {e}")
 else:
     st.info("Importez une facture pour démarrer l’analyse automatique et la simulation de remboursement.")

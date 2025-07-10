@@ -70,20 +70,18 @@ class PennyPetProcessor:
         response = client.analyze_invoice_image(image_bytes, formule)
         content = response.choices[0].message.content
 
-        # 1. Trouver la première '{' et la dernière '}'
-        start = content.find("{")
-        end = content.rfind("}")
-        if start == -1 or end == -1 or end <= start:
-            raise ValueError(f"Réponse LLM Vision invalide, JSON non trouvé dans : {content!r}")
-        json_str = content[start : end + 1]
+        # Extraction robuste du JSON via regex (amélioration recommandée)
+        json_blocks = re.findall(r"\{(?:[^{}]|(?R))*\}", content, re.DOTALL)
+        json_str = max(json_blocks, key=len) if json_blocks else None
 
-        # 2. Charger le JSON
+        if not json_str:
+            raise ValueError(f"Réponse LLM Vision invalide, JSON non trouvé dans : {content!r}")
+
         try:
             data = json.loads(json_str)
         except json.JSONDecodeError as e:
             raise ValueError(f"Impossible de parser le JSON extrait : {e}")
 
-        # 3. Vérification des champs essentiels
         if "lignes" not in data or not isinstance(data["lignes"], list):
             raise ValueError("Le LLM n'a pas extrait de lignes exploitables.")
 
