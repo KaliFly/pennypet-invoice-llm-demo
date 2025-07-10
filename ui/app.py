@@ -18,17 +18,19 @@ except Exception as e:
 
 # 2. Choix du modèle LLM Vision
 provider = st.sidebar.selectbox("Modèle Vision", ["qwen", "mistral"], index=0)
-
-# 3. Upload de la facture
-uploaded = st.file_uploader("Déposez votre facture", type=["pdf", "jpg", "png"])
-
-# 4. Possibles formules pour simulation
 formules_possibles = ["START", "PREMIUM", "INTEGRAL", "INTEGRAL_PLUS"]
 def select_formule():
     return st.sidebar.selectbox("Formule pour simulation", formules_possibles, index=0)
 
+# 3. Upload de la facture
+uploaded = st.file_uploader("Déposez votre facture", type=["pdf", "jpg", "png"])
+
 if uploaded:
     bytes_data = uploaded.read()
+    if not bytes_data:
+        st.error("Le fichier uploadé est vide ou corrompu.")
+        st.stop()
+
     processor = PennyPetProcessor()
 
     with st.spinner("Analyse et calcul du remboursement en cours..."):
@@ -38,18 +40,21 @@ if uploaded:
                 formule_client="",  # vide pour laisser le LLM détecter ou simuler
                 llm_provider=provider
             )
+            if result is None or not isinstance(result, dict):
+                st.error("Le traitement n'a retourné aucun résultat exploitable.")
+                st.stop()
         except Exception as e:
             st.error(f"Erreur lors de l'analyse : {e}")
             st.stop()
 
-    infos = result.get("infos_client", {})
+    infos = result.get("infos_client", {}) if isinstance(result, dict) else {}
     identification = infos.get("identification")
     nom_proprietaire = infos.get("nom_proprietaire")
     nom_animal = infos.get("nom_animal")
 
     res = []
-    if identification:
-        try:
+    try:
+        if identification:
             res = (
                 conn
                 .table("contrats_animaux")
@@ -59,10 +64,7 @@ if uploaded:
                 .execute()
                 .data
             )
-        except Exception as e:
-            st.warning(f"Recherche Supabase échouée : {e}")
-    elif nom_proprietaire and nom_animal:
-        try:
+        elif nom_proprietaire and nom_animal:
             res = (
                 conn
                 .table("contrats_animaux")
@@ -73,8 +75,8 @@ if uploaded:
                 .execute()
                 .data
             )
-        except Exception as e:
-            st.warning(f"Recherche Supabase échouée : {e}")
+    except Exception as e:
+        st.warning(f"Recherche Supabase échouée : {e}")
 
     if res and len(res) == 1:
         client = res[0]
@@ -99,12 +101,15 @@ if uploaded:
     st.sidebar.markdown(f"**Formule :** {client.get('formule','')}")
 
     st.subheader("Détails du remboursement")
-    st.json({
-        "lignes":          result["remboursements"],
-        "total_facture":   result["total_facture"],
-        "total_remboursé": result["total_remboursement"],
-        "reste_à_charge":  result["reste_total_a_charge"]
-    })
+    try:
+        st.json({
+            "lignes":          result["remboursements"],
+            "total_facture":   result["total_facture"],
+            "total_remboursé": result["total_remboursement"],
+            "reste_à_charge":  result["reste_total_a_charge"]
+        })
+    except Exception as e:
+        st.error(f"Erreur lors de l'affichage du résultat : {e}")
 
     if res and st.button("Enregistrer le remboursement"):
         try:

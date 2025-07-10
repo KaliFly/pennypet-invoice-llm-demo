@@ -61,8 +61,7 @@ class PennyPetProcessor:
         llm_provider: str = "qwen"
     ) -> Tuple[Dict[str, Any], str]:
         """
-        Envoie l'image/PDF à l'API LLM Vision et extrait le JSON structuré.
-        Extraction robuste du JSON : équilibrage des accolades pour éviter les erreurs de découpage.
+        Extraction robuste du JSON structuré depuis la réponse LLM.
         Retourne (data, raw_content).
         """
         client = self.client_qwen if llm_provider.lower() == "qwen" else self.client_mistral
@@ -72,7 +71,7 @@ class PennyPetProcessor:
         # Extraction robuste du JSON via équilibrage des accolades
         start = content.find("{")
         if start == -1:
-            raise ValueError(f"JSON non trouvé dans la réponse LLM: {content!r}")
+            raise ValueError(f"JSON non trouvé dans la réponse LLM : {content!r}")
 
         depth = 0
         end = start
@@ -99,7 +98,7 @@ class PennyPetProcessor:
             raise ValueError(f"Erreur lors du parsing JSON : {e}\nContenu reçu : {json_str!r}")
 
         if not data or "lignes" not in data or not isinstance(data["lignes"], list):
-            raise ValueError("Le LLM n'a pas extrait de lignes exploitables.")
+            raise ValueError("Le LLM n'a pas extrait de lignes exploitables.\nContenu reçu : {json_str!r}")
 
         return data, content
 
@@ -111,13 +110,17 @@ class PennyPetProcessor:
     ) -> Dict[str, Any]:
         """
         Pipeline complet :
-        1. extract_lignes_from_image → data, raw_content
-        2. calcul de chaque ligne
-        3. agrégation des totaux
+        1. Extraction LLM → data, raw_content
+        2. Calcul de chaque ligne
+        3. Agrégation des totaux
         """
-        extraction, raw_content = self.extract_lignes_from_image(
-            file_bytes, formule_client, llm_provider
-        )
+        try:
+            extraction, raw_content = self.extract_lignes_from_image(
+                file_bytes, formule_client, llm_provider
+            )
+        except Exception as e:
+            # Vous pouvez ici logger ou retourner un dict d'erreur selon votre UI
+            raise ValueError(f"Erreur lors de l'extraction LLM : {e}")
 
         formule = extraction.get("formule_utilisee", formule_client)
         lignes = extraction.get("lignes", [])
@@ -133,4 +136,19 @@ class PennyPetProcessor:
             remboursements.append({**ligne, **remb})
 
         total_montant = sum(float(l.get("montant_ht", 0.0)) for l in lignes)
+        total_rembourse = sum(float(r.get("remboursement_final", 0.0)) for r in remboursements)
 
+        return {
+            "extraction_facture": extraction,
+            "remboursements": remboursements,
+            "total_facture": total_montant,
+            "total_remboursement": total_rembourse,
+            "reste_total_a_charge": total_montant - total_rembourse,
+            "formule_utilisee": formule,
+            "infos_client": extraction.get("informations_client", {}),
+            "texte_ocr": extraction.get("texte_ocr", ""),
+            "llm_raw": raw_content
+        }
+
+# Instance globale pour usage direct
+pennypet_processor = PennyPetProcessor()
