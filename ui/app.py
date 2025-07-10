@@ -7,7 +7,6 @@ import streamlit as st
 from st_supabase_connection import SupabaseConnection
 from llm_parser.pennypet_processor import PennyPetProcessor
 
-
 # --- Configuration de la page ---
 st.set_page_config(page_title="PennyPet Invoice + DB", layout="wide")
 st.title("PennyPet – Extraction & Remboursement")
@@ -67,12 +66,13 @@ if uploaded:
                 .data
             )
         elif nom_proprietaire and nom_animal:
+            # Correction : utiliser * au lieu de % pour le joker dans ilike (client Python)
             res = (
                 conn
                 .table("contrats_animaux")
                 .select("proprietaire,animal,type_animal,date_naissance,identification,formule")
-                .ilike("proprietaire", f"%{nom_proprietaire}%")
-                .ilike("animal", f"%{nom_animal}%")
+                .ilike("proprietaire", f"*{nom_proprietaire}*")
+                .ilike("animal", f"*{nom_animal}*")
                 .limit(5)
                 .execute()
                 .data
