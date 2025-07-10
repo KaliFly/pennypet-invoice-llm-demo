@@ -30,13 +30,14 @@ formules_possibles = ["START", "PREMIUM", "INTEGRAL", "INTEGRAL_PLUS"]
 def select_formule():
     return st.sidebar.selectbox("Formule pour simulation", formules_possibles, index=0)
 
-# --- Fonction de nettoyage et de normalisation ---
-def normalize_nom(nom):
-    if not nom:
+# --- Fonction pour extraire le nom de famille ---
+def extract_nom_famille(nom_complet):
+    if not nom_complet:
         return ""
-    s = nom.strip().lower()
+    s = nom_complet.strip()
     s = ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn')
-    return s
+    mots = s.lower().split()
+    return mots[-1] if mots else ""
 
 if uploaded:
     bytes_data = uploaded.read()
@@ -55,15 +56,15 @@ if uploaded:
             st.error(f"Erreur lors de l'extraction (réseau ou API) : {e}")
             st.stop()
 
-    # --- Récupération et nettoyage des infos client/animal extraites ---
+    # --- Récupération et extraction du nom de famille ---
     infos_client = extraction.get("informations_client", {}) or {}
     identification = infos_client.get("identification")
-    nom_proprietaire = normalize_nom(infos_client.get("nom_proprietaire"))
-    nom_animal = normalize_nom(infos_client.get("nom_animal"))
+    nom_proprietaire_complet = infos_client.get("nom_proprietaire")
+    nom_famille = extract_nom_famille(nom_proprietaire_complet)
+    nom_animal = infos_client.get("nom_animal", "")
 
-    # --- Affichage debug des valeurs extraites ---
-    st.write(f"Propriétaire extrait (normalisé) : [{nom_proprietaire}]")
-    st.write(f"Animal extrait (normalisé) : [{nom_animal}]")
+    st.write(f"Nom de famille extrait pour recherche : [{nom_famille}]")
+    st.write(f"Animal extrait : [{nom_animal}]")
 
     # --- Recherche automatique dans la base ---
     res = []
@@ -78,14 +79,13 @@ if uploaded:
                 .execute()
                 .data
             )
-        elif nom_proprietaire and nom_animal:
+        elif nom_famille:
             res = (
                 conn
                 .table("contrats_animaux")
                 .select("proprietaire,animal,type_animal,date_naissance,identification,formule")
-                .ilike("proprietaire", f"*{nom_proprietaire}*")
-                .ilike("animal", f"*{nom_animal}*")
-                .limit(5)
+                .ilike("proprietaire", f"*{nom_famille}*")
+                .limit(10)
                 .execute()
                 .data
             )
@@ -93,12 +93,12 @@ if uploaded:
         st.warning(f"Recherche Supabase impossible : {e}")
         res = []
 
-    # --- Affichage debug du résultat Supabase ---
     st.write("Résultat Supabase brut :", res)
 
     # --- Sélection du contrat ou fallback manuel ---
     if res and len(res) == 1:
         client = res[0]
+        st.info(f"Contrat trouvé pour vérification : {client['proprietaire']}")
     elif res and len(res) > 1:
         choix = st.selectbox(
             "Plusieurs contrats trouvés, sélectionnez le bon :",
@@ -107,28 +107,21 @@ if uploaded:
         idx = [f"{r['proprietaire']} - {r['animal']} ({r['identification']})" for r in res].index(choix)
         client = res[idx]
     else:
-        st.warning("Aucun contrat trouvé automatiquement. Sélectionnez une formule pour simuler la prise en charge ou choisissez manuellement ci-dessous.")
-        # Fallback manuel : proposer la liste complète si besoin
+        st.warning("Aucun contrat trouvé automatiquement pour ce nom de famille. Vérification manuelle requise.")
+        # Affiche la liste des propriétaires pour vérification
         try:
-            tous = conn.table("contrats_animaux").select(
-                "proprietaire,animal,type_animal,date_naissance,identification,formule"
-            ).limit(100).execute().data
+            tous = conn.table("contrats_animaux").select("proprietaire").limit(100).execute().data
         except Exception as e:
             tous = []
         if tous:
-            choix = st.selectbox(
-                "Sélectionnez un contrat manuellement :",
-                [f"{r['proprietaire']} - {r['animal']} ({r['identification']})" for r in tous]
-            )
-            idx = [f"{r['proprietaire']} - {r['animal']} ({r['identification']})" for r in tous].index(choix)
-            client = tous[idx]
-        else:
-            client = {
-                "proprietaire": infos_client.get("nom_proprietaire") or "Simulation",
-                "animal": infos_client.get("nom_animal") or "Simulation",
-                "type_animal": "",
-                "formule": select_formule()
-            }
+            st.write("Liste des propriétaires en base :")
+            st.write([r["proprietaire"] for r in tous])
+        client = {
+            "proprietaire": nom_proprietaire_complet or "Simulation",
+            "animal": nom_animal or "Simulation",
+            "type_animal": "",
+            "formule": select_formule()
+        }
 
     # --- Affichage des infos client/animal ---
     st.sidebar.markdown(f"**Propriétaire :** {client.get('proprietaire','')}")
