@@ -2,6 +2,9 @@ import pandas as pd
 import re
 import json
 from pathlib import Path
+import streamlit as st
+url = st.secrets["connections.supabase"]["url"]
+key = st.secrets["connections.supabase"]["key"]
 
 class PennyPetConfig:
     """
