@@ -1,3 +1,6 @@
+import sys, os
+# add project root so Python can import openrouter_client and llm_parser
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import streamlit as st
 
 st.title("🔍 Test de diagnostic PennyPet")
