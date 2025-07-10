@@ -62,9 +62,8 @@ class PennyPetProcessor:
     ) -> Tuple[Dict[str, Any], str]:
         """
         Envoie l'image/PDF à l'API LLM Vision et extrait le JSON structuré.
-        Retourne (data, raw_content) où data est le dict JSON et raw_content
-        la réponse brute du LLM pour audit.
         Extraction robuste du JSON : équilibrage des accolades pour éviter les erreurs de découpage.
+        Retourne (data, raw_content).
         """
         client = self.client_qwen if llm_provider.lower() == "qwen" else self.client_mistral
         response = client.analyze_invoice_image(image_bytes, formule)
@@ -133,20 +132,4 @@ class PennyPetProcessor:
             remb = self.calculer_remboursement_pennypet(montant, code, formule)
             remboursements.append({**ligne, **remb})
 
-        total_montant = sum(float(l.get("montant_ht", 0.0)) for l in lignes)
-        total_rembourse = sum(float(r.get("remboursement_final", 0.0)) for r in remboursements)
-
-        return {
-            "extraction_facture": extraction,
-            "remboursements": remboursements,
-            "total_facture": total_montant,
-            "total_remboursement": total_rembourse,
-            "reste_total_a_charge": total_montant - total_rembourse,
-            "formule_utilisee": formule,
-            "infos_client": extraction.get("informations_client", {}),
-            "texte_ocr": extraction.get("texte_ocr", ""),
-            "llm_raw": raw_content
-        }
-
-# Instance globale pour usage direct
-pennypet_processor = PennyPetProcessor()
+        total_montant = sum(float(l.get("montant
