@@ -1,9 +1,7 @@
 import json
-import re
 from typing import Dict, List, Any, Tuple
-from pathlib import Path
-from openrouter_client import OpenRouterClient
 from config.pennypet_config import PennyPetConfig
+from openrouter_client import OpenRouterClient
 
 class PennyPetProcessor:
     """
@@ -56,26 +54,6 @@ class PennyPetProcessor:
             "formule_utilisee": formule
         }
 
-    def _extract_json_blocks(self, text: str) -> List[str]:
-        """
-        Extraction robuste des blocs JSON dans un texte, sans regex récursive.
-        Utilise un comptage d'accolades pour délimiter le JSON.
-        """
-        blocks = []
-        stack = []
-        start = None
-        for i, c in enumerate(text):
-            if c == '{':
-                if not stack:
-                    start = i
-                stack.append(c)
-            elif c == '}':
-                if stack:
-                    stack.pop()
-                    if not stack and start is not None:
-                        blocks.append(text[start:i+1])
-        return blocks
-
     def extract_lignes_from_image(
         self,
         image_bytes: bytes,
@@ -83,20 +61,34 @@ class PennyPetProcessor:
         llm_provider: str = "qwen"
     ) -> Tuple[Dict[str, Any], str]:
         """
-        Envoie l’image/PDF à l’API LLM Vision et extrait le JSON structuré.
+        Envoie l'image/PDF à l'API LLM Vision et extrait le JSON structuré.
         Retourne (data, raw_content) où data est le dict JSON et raw_content
         la réponse brute du LLM pour audit.
+        Extraction robuste du JSON : équilibrage des accolades pour éviter les erreurs de découpage.
         """
         client = self.client_qwen if llm_provider.lower() == "qwen" else self.client_mistral
         response = client.analyze_invoice_image(image_bytes, formule)
         content = response.choices[0].message.content
 
-        # Extraction robuste du JSON via comptage d’accolades
-        json_blocks = self._extract_json_blocks(content)
-        json_str = max(json_blocks, key=len) if json_blocks else None
+        # Extraction robuste du JSON via équilibrage des accolades
+        start = content.find("{")
+        if start == -1:
+            raise ValueError(f"JSON non trouvé dans la réponse LLM: {content!r}")
 
-        if not json_str:
-            raise ValueError(f"Réponse LLM Vision invalide, JSON non trouvé dans : {content!r}")
+        depth = 0
+        end = start
+        for i, ch in enumerate(content[start:], start):
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    end = i
+                    break
+        if depth != 0:
+            raise ValueError("Appariement des accolades JSON impossible dans la réponse LLM.")
+
+        json_str = content[start:end+1]
 
         try:
             data = json.loads(json_str)
@@ -104,7 +96,7 @@ class PennyPetProcessor:
             raise ValueError(f"Impossible de parser le JSON extrait : {e}")
 
         if "lignes" not in data or not isinstance(data["lignes"], list):
-            raise ValueError("Le LLM n’a pas extrait de lignes exploitables.")
+            raise ValueError("Le LLM n'a pas extrait de lignes exploitables.")
 
         return data, content
 

@@ -1,173 +1,134 @@
+# app.py
+
 import sys
 import os
-
-# Ajouter la racine du projet au PYTHONPATH dès le début
-sys.path.insert(
-    0,
-    os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-)
-
-from pathlib import Path
-import pandas as pd
-import re
-import json
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import streamlit as st
 from st_supabase_connection import SupabaseConnection
+from llm_parser.pennypet_processor import PennyPetProcessor
 
-# Initialisation sécurisée de la connexion Supabase
-try:
-    supabase_url = st.secrets["SUPABASE_URL"]
-    supabase_key = st.secrets["SUPABASE_KEY"]
-    conn = st.connection(
-        "supabase",
-        type=SupabaseConnection,
-        url=supabase_url,
-        key=supabase_key
-    )
-except Exception as e:
-    st.error(f"Erreur de connexion à Supabase : {e}")
-    st.stop()
+# Configuration de la page
+st.set_page_config(page_title="PennyPet Invoice + DB", layout="wide")
+st.title("PennyPet – Extraction & Remboursement")
 
+# 1. Connexion à Supabase
+conn = st.connection("supabase", type=SupabaseConnection)
 
-class PennyPetConfig:
-    """
-    Chargement et validation robuste de la configuration du prototype PennyPet.
-    Correction des chemins, gestion des erreurs, et logs détaillés.
-    """
+# 2. Choix du modèle LLM Vision
+provider = st.sidebar.selectbox("Modèle Vision", ["qwen", "mistral"], index=0)
 
-    def __init__(self, base_dir: Path = None):
-        # base_dir par défaut => dossier ui/
-        if base_dir is None:
-            base_dir = Path(__file__).resolve().parent
-        # racine du projet
-        project_root = base_dir.parent
+# 3. Upload de la facture
+uploaded = st.file_uploader("Déposez votre facture", type=["pdf", "jpg", "png"])
 
-        # dossier config placé à la racine du projet
-        self.config_dir = project_root / "config"
+# 4. Possibles formules pour simulation
+formules_possibles = ["START", "PREMIUM", "INTEGRAL", "INTEGRAL_PLUS"]
+def select_formule():
+    return st.sidebar.selectbox("Formule pour simulation", formules_possibles, index=0)
 
-        # Vérification de l'existence du dossier de configuration
-        if not self.config_dir.exists():
-            st.error(f"Dossier de configuration introuvable : {self.config_dir}")
-            st.stop()
+if uploaded:
+    bytes_data = uploaded.read()
+    processor = PennyPetProcessor()
 
-        # Chargement des lexiques et regex
+    # 5. Extraction + Calcul via LLM Vision
+    with st.spinner("Analyse et calcul du remboursement en cours..."):
         try:
-            st.write("→ Chargement actes_normalises.csv depuis", self.config_dir / "lexiques/actes_normalises.csv")
-            self.actes_df = self._load_csv_regex("lexiques/actes_normalises.csv", sep=";")
-
-            st.write("→ Chargement medicaments_normalises.json depuis", self.config_dir / "medicaments_normalises.json")
-            self.medicaments_df = self._load_json_df("medicaments_normalises.json")
-
-            st.write("→ Chargement calculs_codes_int.csv depuis", self.config_dir / "regex/calculs_codes_int.csv")
-            self.calculs_codes_df = self._load_csv_regex("regex/calculs_codes_int.csv", sep=";")
-
-            st.write("→ Chargement infos_financieres.csv depuis", self.config_dir / "regex/infos_financieres.csv")
-            self.infos_financieres_df = self._load_csv_regex("regex/infos_financieres.csv", sep=";")
-
-            st.write("→ Chargement metadonnees.csv depuis", self.config_dir / "regex/metadonnees.csv")
-            self.metadonnees_df = self._load_csv_regex(
-                "regex/metadonnees.csv",
-                sep=";",
-                quotechar='"'
+            result = processor.process_facture_pennypet(
+                file_bytes=bytes_data,
+                formule_client="",  # vide pour laisser le LLM détecter ou simuler
+                llm_provider=provider
             )
-
-            st.write("→ Chargement parties_benef.csv depuis", self.config_dir / "regex/parties_benef.csv")
-            self.parties_benef_df = self._load_csv_regex("regex/parties_benef.csv", sep=";")
-
-            st.write("→ Chargement suivi_SLA.csv depuis", self.config_dir / "regex/suivi_SLA.csv")
-            self.suivi_sla_df = self._load_csv_regex("regex/suivi_SLA.csv", sep=";")
         except Exception as e:
-            st.error(f"Erreur lors du chargement des lexiques/regex : {e}")
-            st.exception(e)
+            st.error(f"Erreur lors de l'analyse : {e}")
             st.stop()
 
-        # Chargement des règles et formules
-        try:
-            st.write("→ Chargement regles_prise_en_charge.csv depuis", self.config_dir / "regles_prise_en_charge.csv")
-            self.regles_pc_df = self._load_regles("regles_prise_en_charge.csv", sep=";")
+    # 6. Récupération des infos client/animal extraites
+    infos = result.get("infos_client", {})
+    identification = infos.get("identification")
+    nom_proprietaire = infos.get("nom_proprietaire")
+    nom_animal = infos.get("nom_animal")
 
-            st.write("→ Chargement mapping_amv_pennypet.json depuis", self.config_dir / "mapping_amv_pennypet.json")
-            self.mapping_amv = self._load_json("mapping_amv_pennypet.json")
+    # 7. Recherche automatique dans la base via st-supabase-connection
+    res = []
+    if identification:
+        res = (
+            conn
+            .table("contrats_animaux")
+            .select("proprietaire,animal,type_animal,date_naissance,identification,formule")
+            .eq("identification", identification)
+            .limit(1)
+            .execute()
+            .data
+        )
+    elif nom_proprietaire and nom_animal:
+        res = (
+            conn
+            .table("contrats_animaux")
+            .select("proprietaire,animal,type_animal,date_naissance,identification,formule")
+            .ilike("proprietaire", f"%{nom_proprietaire}%")
+            .ilike("animal", f"%{nom_animal}%")
+            .limit(5)
+            .execute()
+            .data
+        )
 
-            st.write("→ Chargement formules_pennypet.json depuis", self.config_dir / "formules_pennypet.json")
-            self.formules = self._load_json("formules_pennypet.json")
-        except Exception as e:
-            st.error(f"Erreur lors du chargement des règles ou formules : {e}")
-            st.exception(e)
-            st.stop()
-
-    def _load_json(self, filename: str) -> dict:
-        path = self.config_dir / filename
-        if not path.exists():
-            raise FileNotFoundError(f"Le fichier JSON {path} est manquant.")
-        with open(path, encoding="utf-8") as f:
-            return json.load(f)
-
-    def _load_json_df(self, filename: str) -> pd.DataFrame:
-        path = self.config_dir / filename
-        if not path.exists():
-            raise FileNotFoundError(f"Le fichier JSON {path} est manquant.")
-        with open(path, encoding="utf-8") as f:
-            data = json.load(f)
-        if isinstance(data, dict):
-            data = list(data.values())
-        if not data:
-            raise ValueError(f"Aucune donnée trouvée dans {path}.")
-        return pd.DataFrame(data)
-
-    def _load_csv(self, relpath: str, **kwargs) -> pd.DataFrame:
-        path = self.config_dir / relpath
-        if not path.exists():
-            raise FileNotFoundError(f"Le fichier CSV {path} est manquant.")
-        try:
-            return pd.read_csv(path, encoding="utf-8", **kwargs)
-        except Exception as e:
-            raise ValueError(f"Erreur de lecture du CSV {path} : {e}")
-
-    def _load_csv_regex(self, relpath: str, **kwargs) -> pd.DataFrame:
-        df = self._load_csv(relpath, **kwargs)
-        df.columns = [c.strip() for c in df.columns]
-        mapping_cols = {
-            "Terme/Libellé": "field_label",
-            "Regex OCR": "regex_pattern",
-            "Variantes/Synonymes": "variantes"
+    # 8. Sélection du contrat ou simulation
+    if res and len(res) == 1:
+        client = res[0]
+    elif res and len(res) > 1:
+        choix = st.selectbox(
+            "Plusieurs contrats trouvés, sélectionnez le bon :",
+            [f"{r['proprietaire']} - {r['animal']} ({r['identification']})" for r in res]
+        )
+        idx = [f"{r['proprietaire']} - {r['animal']} ({r['identification']})" for r in res].index(choix)
+        client = res[idx]
+    else:
+        st.warning("Aucun contrat trouvé. Sélectionnez une formule pour simuler la prise en charge.")
+        client = {
+            "proprietaire": nom_proprietaire or "Simulation",
+            "animal": nom_animal or "Simulation",
+            "type_animal": "",
+            "formule": select_formule()
         }
-        for old, new in mapping_cols.items():
-            if old in df.columns:
-                df.rename(columns={old: new}, inplace=True)
-        if "regex_pattern" in df.columns:
-            def compile_or_none(pat: str):
-                try:
-                    return re.compile(pat, re.IGNORECASE) if pat and str(pat).lower() != "nan" else None
-                except re.error:
-                    return None
-            df["pattern"] = df["regex_pattern"].astype(str).apply(compile_or_none)
-        return df
 
-    def _load_regles(self, relpath: str, **kwargs) -> pd.DataFrame:
-        df = self._load_csv(relpath, **kwargs)
-        for col in ["exclusions", "actes_couverts", "conditions_speciales"]:
-            if col in df.columns:
-                df[col] = (
-                    df[col]
-                    .fillna("")
-                    .apply(lambda s: [v.strip() for v in s.split("|") if v.strip()] if s else [])
-                )
-        for col in ["taux_remboursement", "plafond_annuel"]:
-            if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
-        return df
+    # 9. Affichage des infos client/animal
+    st.sidebar.markdown(f"**Propriétaire :** {client.get('proprietaire','')}")
+    st.sidebar.markdown(f"**Animal :** {client.get('animal','')} ({client.get('type_animal','')})")
+    st.sidebar.markdown(f"**Formule :** {client.get('formule','')}")
 
+    # 10. Affichage du résultat de remboursement
+    st.subheader("Détails du remboursement")
+    st.json({
+        "lignes":          result["remboursements"],
+        "total_facture":   result["total_facture"],
+        "total_remboursé": result["total_remboursement"],
+        "reste_à_charge":  result["reste_total_a_charge"]
+    })
 
-# Instanciation et point de contrôle
-config = PennyPetConfig()
-st.write("✅ Configuration chargée depuis :", config.config_dir)
-
-# Exemple d’UI Streamlit à placer ici
-st.title("PennyPet Invoice Parser")
-uploaded_file = st.file_uploader("Téléversez votre facture")
-if uploaded_file:
-    st.write("Traitement en cours…")
-    # … votre logique de parsing …
-    st.write("Résultat du parsing :", {})  # Remplacez {} par vos données
+    # 11. Enregistrement optionnel (si contrat réel)
+    if res and st.button("Enregistrer le remboursement"):
+        # Insère la ligne de remboursement
+        contrat_id = (
+            conn
+            .table("contrats_animaux")
+            .select("id")
+            .eq("identification", client["identification"])
+            .limit(1)
+            .execute()
+            .data[0]["id"]
+        )
+        _ = (
+            conn
+            .table("remboursements")
+            .insert([{
+                "id_contrat":       contrat_id,
+                "date_acte":        "now()",
+                "montant_facture":  result["total_facture"],
+                "montant_rembourse": result["total_remboursement"],
+                "reste_a_charge":   result["reste_total_a_charge"]
+            }])
+            .execute()
+        )
+        st.success("Opération enregistrée en base.")
+else:
+    st.info("Importez une facture pour démarrer l’analyse automatique et la simulation de remboursement.")
