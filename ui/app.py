@@ -141,8 +141,3 @@ class PennyPetConfig:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
         return df
-
-
-# Exemple d’instanciation et affichage pour vérifier le bon chargement
-config = PennyPetConfig()
-st.write("Configuration chargée depuis :", config.config_dir)
