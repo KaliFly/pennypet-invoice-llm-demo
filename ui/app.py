@@ -55,7 +55,7 @@ class PennyPetConfig:
         # Chargement des lexiques et regex
         try:
             self.actes_df = self._load_csv_regex("lexiques/actes_normalises.csv", sep=";")
-            self.medicaments_df = self._load_json_df("lexiques/medicaments_normalises.json")
+            self.medicaments_df = self._load_json_df("medicaments_normalises.json")
             self.calculs_codes_df = self._load_csv_regex("regex/calculs_codes_int.csv", sep=";")
             self.infos_financieres_df = self._load_csv_regex("regex/infos_financieres.csv", sep=";")
             self.metadonnees_df = self._load_csv_regex("regex/metadonnees.csv", sep=";", quotechar='"')
