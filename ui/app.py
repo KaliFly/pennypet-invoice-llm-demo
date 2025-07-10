@@ -3,19 +3,21 @@ import re
 import json
 from pathlib import Path
 import streamlit as st
-from st_supabase_connection import SupabaseConnection  # ou votre import existant
+from st_supabase_connection import SupabaseConnection
 
-# Récupération des clés plates dans st.secrets
-supabase_url = st.secrets["SUPABASE_URL"]
-supabase_key = st.secrets["SUPABASE_KEY"]
-
-# Initialisation de la connexion Supabase
-conn = st.connection(
-    "supabase",
-    type=SupabaseConnection,
-    url=supabase_url,
-    key=supabase_key
-)
+# Initialisation sécurisée de la connexion Supabase
+try:
+    supabase_url = st.secrets["SUPABASE_URL"]
+    supabase_key = st.secrets["SUPABASE_KEY"]
+    conn = st.connection(
+        "supabase",
+        type=SupabaseConnection,
+        url=supabase_url,
+        key=supabase_key
+    )
+except Exception as e:
+    st.error(f"Erreur de connexion à Supabase : {e}")
+    st.stop()
 
 
 class PennyPetConfig:
@@ -33,21 +35,30 @@ class PennyPetConfig:
 
         # Vérification de l'existence du dossier de configuration
         if not self.config_dir.exists():
-            raise FileNotFoundError(f"Dossier de configuration introuvable : {self.config_dir}")
+            st.error(f"Dossier de configuration introuvable : {self.config_dir}")
+            st.stop()
 
         # Chargement des lexiques et regex
-        self.actes_df = self._load_csv_regex("lexiques/actes_normalises.csv", sep=";")
-        self.medicaments_df = self._load_json_df("medicaments_normalises.json")
-        self.calculs_codes_df = self._load_csv_regex("regex/calculs_codes_int.csv", sep=";")
-        self.infos_financieres_df = self._load_csv_regex("regex/infos_financieres.csv", sep=";")
-        self.metadonnees_df = self._load_csv_regex("regex/metadonnees.csv", sep=";", quotechar='"')
-        self.parties_benef_df = self._load_csv_regex("regex/parties_benef.csv", sep=";")
-        self.suivi_sla_df = self._load_csv_regex("regex/suivi_SLA.csv", sep=";")
+        try:
+            self.actes_df = self._load_csv_regex("lexiques/actes_normalises.csv", sep=";")
+            self.medicaments_df = self._load_json_df("medicaments_normalises.json")
+            self.calculs_codes_df = self._load_csv_regex("regex/calculs_codes_int.csv", sep=";")
+            self.infos_financieres_df = self._load_csv_regex("regex/infos_financieres.csv", sep=";")
+            self.metadonnees_df = self._load_csv_regex("regex/metadonnees.csv", sep=";", quotechar='"')
+            self.parties_benef_df = self._load_csv_regex("regex/parties_benef.csv", sep=";")
+            self.suivi_sla_df = self._load_csv_regex("regex/suivi_SLA.csv", sep=";")
+        except Exception as e:
+            st.error(f"Erreur lors du chargement des lexiques/regex : {e}")
+            st.stop()
 
         # Chargement des règles et formules
-        self.regles_pc_df = self._load_regles("regles_prise_en_charge.csv", sep=";")
-        self.mapping_amv = self._load_json("mapping_amv_pennypet.json")
-        self.formules = self._load_json("formules_pennypet.json")
+        try:
+            self.regles_pc_df = self._load_regles("regles_prise_en_charge.csv", sep=";")
+            self.mapping_amv = self._load_json("mapping_amv_pennypet.json")
+            self.formules = self._load_json("formules_pennypet.json")
+        except Exception as e:
+            st.error(f"Erreur lors du chargement des règles ou formules : {e}")
+            st.stop()
 
     def _load_json(self, filename: str) -> dict:
         path = self.config_dir / filename
@@ -93,7 +104,7 @@ class PennyPetConfig:
         if "regex_pattern" in df.columns:
             def compile_or_none(pat: str):
                 try:
-                    return re.compile(pat, re.IGNORECASE) if pat and pat.lower() != "nan" else None
+                    return re.compile(pat, re.IGNORECASE) if pat and str(pat).lower() != "nan" else None
                 except re.error:
                     return None
             df["pattern"] = df["regex_pattern"].astype(str).apply(compile_or_none)
