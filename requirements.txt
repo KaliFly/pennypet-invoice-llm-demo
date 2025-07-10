@@ -1,7 +1,22 @@
+# Core
 streamlit==1.46.1
 pandas==2.3.1
 openai==1.94.0
 python-dotenv==1.0.0
-openrouter-client
+
+# LLM Vision client
+openrouter-client==0.1.0
+
+# Base de données Supabase
 supabase==2.16.0
 st-supabase-connection==2.1.0
+
+# Dépendances recommandées
+requests>=2.27,<3.0
+protobuf>=3.20,<7.0
+pyarrow>=7.0
+tenacity>=8.1.0,<10.0
+toml>=0.10.1,<2.0
+watchdog>=2.1.5,<7.0
+click>=7.0,<9.0
+jsonschema>=4.0
