@@ -1,5 +1,6 @@
 import sys
 import os
+import unicodedata
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -29,6 +30,14 @@ formules_possibles = ["START", "PREMIUM", "INTEGRAL", "INTEGRAL_PLUS"]
 def select_formule():
     return st.sidebar.selectbox("Formule pour simulation", formules_possibles, index=0)
 
+# --- Fonction de nettoyage et de normalisation ---
+def normalize_nom(nom):
+    if not nom:
+        return ""
+    s = nom.strip().lower()
+    s = ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn')
+    return s
+
 if uploaded:
     bytes_data = uploaded.read()
     processor = PennyPetProcessor()
@@ -46,11 +55,15 @@ if uploaded:
             st.error(f"Erreur lors de l'extraction (réseau ou API) : {e}")
             st.stop()
 
-    # --- Récupération des infos client/animal extraites ---
-    infos_client = extraction.get("informations_client", {})
+    # --- Récupération et nettoyage des infos client/animal extraites ---
+    infos_client = extraction.get("informations_client", {}) or {}
     identification = infos_client.get("identification")
-    nom_proprietaire = infos_client.get("nom_proprietaire")
-    nom_animal = infos_client.get("nom_animal")
+    nom_proprietaire = normalize_nom(infos_client.get("nom_proprietaire"))
+    nom_animal = normalize_nom(infos_client.get("nom_animal"))
+
+    # --- Affichage debug des valeurs extraites ---
+    st.write(f"Propriétaire extrait (normalisé) : [{nom_proprietaire}]")
+    st.write(f"Animal extrait (normalisé) : [{nom_animal}]")
 
     # --- Recherche automatique dans la base ---
     res = []
@@ -66,7 +79,6 @@ if uploaded:
                 .data
             )
         elif nom_proprietaire and nom_animal:
-            # Correction : utiliser * au lieu de % pour le joker dans ilike (client Python)
             res = (
                 conn
                 .table("contrats_animaux")
@@ -81,7 +93,10 @@ if uploaded:
         st.warning(f"Recherche Supabase impossible : {e}")
         res = []
 
-    # --- Sélection du contrat ou simulation ---
+    # --- Affichage debug du résultat Supabase ---
+    st.write("Résultat Supabase brut :", res)
+
+    # --- Sélection du contrat ou fallback manuel ---
     if res and len(res) == 1:
         client = res[0]
     elif res and len(res) > 1:
@@ -92,13 +107,28 @@ if uploaded:
         idx = [f"{r['proprietaire']} - {r['animal']} ({r['identification']})" for r in res].index(choix)
         client = res[idx]
     else:
-        st.warning("Aucun contrat trouvé. Sélectionnez une formule pour simuler la prise en charge.")
-        client = {
-            "proprietaire": nom_proprietaire or "Simulation",
-            "animal": nom_animal or "Simulation",
-            "type_animal": "",
-            "formule": select_formule()
-        }
+        st.warning("Aucun contrat trouvé automatiquement. Sélectionnez une formule pour simuler la prise en charge ou choisissez manuellement ci-dessous.")
+        # Fallback manuel : proposer la liste complète si besoin
+        try:
+            tous = conn.table("contrats_animaux").select(
+                "proprietaire,animal,type_animal,date_naissance,identification,formule"
+            ).limit(100).execute().data
+        except Exception as e:
+            tous = []
+        if tous:
+            choix = st.selectbox(
+                "Sélectionnez un contrat manuellement :",
+                [f"{r['proprietaire']} - {r['animal']} ({r['identification']})" for r in tous]
+            )
+            idx = [f"{r['proprietaire']} - {r['animal']} ({r['identification']})" for r in tous].index(choix)
+            client = tous[idx]
+        else:
+            client = {
+                "proprietaire": infos_client.get("nom_proprietaire") or "Simulation",
+                "animal": infos_client.get("nom_animal") or "Simulation",
+                "type_animal": "",
+                "formule": select_formule()
+            }
 
     # --- Affichage des infos client/animal ---
     st.sidebar.markdown(f"**Propriétaire :** {client.get('proprietaire','')}")
@@ -132,15 +162,19 @@ if uploaded:
     # --- Enregistrement optionnel (si contrat réel) ---
     if res and st.button("Enregistrer le remboursement"):
         try:
-            id_contrat = (
+            data_id = (
                 conn
                 .table("contrats_animaux")
                 .select("id")
                 .eq("identification", client["identification"])
                 .limit(1)
                 .execute()
-                .data[0]["id"]
+                .data
             )
+            if not data_id:
+                st.error("Aucun contrat trouvé pour cet identifiant.")
+                st.stop()
+            id_contrat = data_id[0]["id"]
             _ = (
                 conn
                 .table("remboursements")
