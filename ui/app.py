@@ -53,7 +53,7 @@ class PennyPetConfig:
 
         # Chargement des lexiques et regex
         try:
-            st.write("→ Chargement acts_normalises.csv depuis", self.config_dir / "lexiques/actes_normalises.csv")
+            st.write("→ Chargement actes_normalises.csv depuis", self.config_dir / "lexiques/actes_normalises.csv")
             self.actes_df = self._load_csv_regex("lexiques/actes_normalises.csv", sep=";")
 
             st.write("→ Chargement medicaments_normalises.json depuis", self.config_dir / "lexiques/medicaments_normalises.json")
@@ -66,7 +66,11 @@ class PennyPetConfig:
             self.infos_financieres_df = self._load_csv_regex("regex/infos_financieres.csv", sep=";")
 
             st.write("→ Chargement metadonnees.csv depuis", self.config_dir / "regex/metadonnees.csv")
-            self.metadonnees_df = self._load_csv_regex("regex/metadonnees.csv", sep=";", quotechar='"")
+            self.metadonnees_df = self._load_csv_regex(
+                "regex/metadonnees.csv",
+                sep=";",
+                quotechar='"'
+            )
 
             st.write("→ Chargement parties_benef.csv depuis", self.config_dir / "regex/parties_benef.csv")
             self.parties_benef_df = self._load_csv_regex("regex/parties_benef.csv", sep=";")
