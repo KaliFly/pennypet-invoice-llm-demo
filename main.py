@@ -7,7 +7,7 @@ from llm_parser.pennypet_processor import PennyPetProcessor
 # Configuration du logging
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s"
+    format="%(asctime)s [%(levelname)s] %(message)s",
 )
 
 def get_sample_path() -> Path:
@@ -26,7 +26,7 @@ def get_sample_path() -> Path:
 def process_facture_pennypet(
     file_bytes: bytes,
     formule_client: str,
-    llm_provider: str = "qwen"
+    llm_provider: str = "qwen",
 ) -> dict:
     """
     Pipeline PennyPet 100% LLM Vision :
@@ -42,7 +42,7 @@ def process_facture_pennypet(
         result = processor.process_facture_pennypet(
             file_bytes=file_bytes,
             formule_client=formule_client,
-            llm_provider=llm_provider
+            llm_provider=llm_provider,
         )
         return result
     except ValueError as ve:
@@ -60,7 +60,7 @@ if __name__ == "__main__":
         result = process_facture_pennypet(
             file_bytes=file_bytes,
             formule_client="INTEGRAL",
-            llm_provider="qwen"
+            llm_provider="qwen",
         )
         print(json.dumps(result, indent=2, ensure_ascii=False))
     except Exception as e:

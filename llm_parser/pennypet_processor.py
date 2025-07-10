@@ -1,7 +1,9 @@
 import json
+import re
 from typing import Dict, List, Any, Tuple
-from config.pennypet_config import PennyPetConfig
+from pathlib import Path
 from openrouter_client import OpenRouterClient
+from config.pennypet_config import PennyPetConfig
 
 class PennyPetProcessor:
     """
@@ -56,8 +58,8 @@ class PennyPetProcessor:
 
     def _extract_json_blocks(self, text: str) -> List[str]:
         """
-        Extraction robuste des blocs JSON dans un texte, sans récursion regex.
-        Utilise une méthode de comptage d'accolades.
+        Extraction robuste des blocs JSON dans un texte, sans regex récursive.
+        Utilise un comptage d'accolades pour délimiter le JSON.
         """
         blocks = []
         stack = []
@@ -81,7 +83,7 @@ class PennyPetProcessor:
         llm_provider: str = "qwen"
     ) -> Tuple[Dict[str, Any], str]:
         """
-        Envoie l'image/PDF à l'API LLM Vision et extrait le JSON structuré.
+        Envoie l’image/PDF à l’API LLM Vision et extrait le JSON structuré.
         Retourne (data, raw_content) où data est le dict JSON et raw_content
         la réponse brute du LLM pour audit.
         """
@@ -89,7 +91,7 @@ class PennyPetProcessor:
         response = client.analyze_invoice_image(image_bytes, formule)
         content = response.choices[0].message.content
 
-        # Extraction robuste du JSON via méthode de comptage d'accolades
+        # Extraction robuste du JSON via comptage d’accolades
         json_blocks = self._extract_json_blocks(content)
         json_str = max(json_blocks, key=len) if json_blocks else None
 
@@ -102,7 +104,7 @@ class PennyPetProcessor:
             raise ValueError(f"Impossible de parser le JSON extrait : {e}")
 
         if "lignes" not in data or not isinstance(data["lignes"], list):
-            raise ValueError("Le LLM n'a pas extrait de lignes exploitables.")
+            raise ValueError("Le LLM n’a pas extrait de lignes exploitables.")
 
         return data, content
 
