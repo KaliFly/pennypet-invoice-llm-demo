@@ -1,10 +1,12 @@
 import sys
 import os
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import streamlit as st
 from st_supabase_connection import SupabaseConnection
 from llm_parser.pennypet_processor import PennyPetProcessor
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # --- Configuration de la page ---
 st.set_page_config(page_title="PennyPet Invoice + DB", layout="wide")
