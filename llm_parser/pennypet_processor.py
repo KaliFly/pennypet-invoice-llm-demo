@@ -132,4 +132,5 @@ class PennyPetProcessor:
             remb = self.calculer_remboursement_pennypet(montant, code, formule)
             remboursements.append({**ligne, **remb})
 
-        total_montant = sum(float(l.get("montant
+        total_montant = sum(float(l.get("montant_ht", 0.0)) for l in lignes)
+
