@@ -23,11 +23,11 @@ class PennyPetConfig:
         # Chargement des lexiques et regex
         self.actes_df = self._load_csv_regex("lexiques/actes_normalises.csv", sep=";")
         self.medicaments_df = self._load_json_df("medicaments_normalises.json")
-        self.calculs_codes_df = self._load_csv_regex("lexiques/regex/calculs_codes_int.csv", sep=";")
-        self.infos_financieres_df = self._load_csv_regex("lexiques/regex/infos_financieres.csv", sep=";")
-        self.metadonnees_df = self._load_csv_regex("lexiques/regex/metadonnees.csv", sep=";", quotechar='"')
-        self.parties_benef_df = self._load_csv_regex("lexiques/regex/parties_benef.csv", sep=";")
-        self.suivi_sla_df = self._load_csv_regex("lexiques/regex/suivi_SLA.csv", sep=";")
+        self.calculs_codes_df = self._load_csv_regex("regex/calculs_codes_int.csv", sep=";")
+        self.infos_financieres_df = self._load_csv_regex("regex/infos_financieres.csv", sep=";")
+        self.metadonnees_df = self._load_csv_regex("regex/metadonnees.csv", sep=";", quotechar='"')
+        self.parties_benef_df = self._load_csv_regex("regex/parties_benef.csv", sep=";")
+        self.suivi_sla_df = self._load_csv_regex("regex/suivi_SLA.csv", sep=";")
 
         # Chargement des règles et formules
         self.regles_pc_df = self._load_regles("regles_prise_en_charge.csv", sep=";")
