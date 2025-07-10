@@ -6,8 +6,8 @@ from pathlib import Path
 # Chargement des secrets pour la connexion à Supabase
 import streamlit as st
 
-url = st.secrets["SUPABASE_URL"]
-key = st.secrets["SUPABASE_KEY"]
+url = st.secrets["DB_URL"]
+key = st.secrets["DB_KEY"]
 
 
 class PennyPetConfig:
