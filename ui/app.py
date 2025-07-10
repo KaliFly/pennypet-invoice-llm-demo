@@ -56,8 +56,8 @@ class PennyPetConfig:
             st.write("→ Chargement actes_normalises.csv depuis", self.config_dir / "lexiques/actes_normalises.csv")
             self.actes_df = self._load_csv_regex("lexiques/actes_normalises.csv", sep=";")
 
-            st.write("→ Chargement medicaments_normalises.json depuis", self.config_dir / "lexiques/medicaments_normalises.json")
-            self.medicaments_df = self._load_json_df("lexiques/medicaments_normalises.json")
+            st.write("→ Chargement medicaments_normalises.json depuis", self.config_dir / "medicaments_normalises.json")
+            self.medicaments_df = self._load_json_df("medicaments_normalises.json")
 
             st.write("→ Chargement calculs_codes_int.csv depuis", self.config_dir / "regex/calculs_codes_int.csv")
             self.calculs_codes_df = self._load_csv_regex("regex/calculs_codes_int.csv", sep=";")
