@@ -9,11 +9,10 @@ import pandas as pd
 from st_supabase_connection import SupabaseConnection
 from llm_parser.pennypet_processor import PennyPetProcessor
 
-# Page configuration and styling
+# Page config et style
 st.set_page_config(
-    page_title="PennyPet Invoice + DB",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_title="PennyPet – Extraction & Remboursement",
+    layout="wide"
 )
 st.markdown(
     """
@@ -42,14 +41,14 @@ except Exception as e:
     st.error(f"❌ Erreur de connexion à Supabase : {e}")
     st.stop()
 
-# 2. Sidebar controls
+# 2. Contrôles sidebar
 with st.sidebar:
     st.header("Paramètres")
     provider = st.selectbox("Modèle Vision", ["qwen", "mistral"], index=0)
     formules_possibles = ["START", "PREMIUM", "INTEGRAL", "INTEGRAL_PLUS"]
     formule_simulation = st.selectbox("Formule (simulation)", formules_possibles, index=0)
 
-# 3. File uploader
+# 3. Upload fichier
 st.subheader("Importez votre facture")
 uploaded = st.file_uploader("", type=["pdf", "jpg", "png"], label_visibility="collapsed")
 if not uploaded:
@@ -68,7 +67,7 @@ with st.spinner("🔍 Extraction des infos client..."):
     try:
         temp = processor.process_facture_pennypet(
             file_bytes=bytes_data,
-            formule_client="INTEGRAL",  # neutre pour extraction
+            formule_client="INTEGRAL",
             llm_provider=provider
         )
         if not isinstance(temp, dict):
@@ -79,29 +78,33 @@ with st.spinner("🔍 Extraction des infos client..."):
         st.stop()
 
 infos = temp.get("infos_client", {})
-identification   = infos.get("identification")
+identification = infos.get("identification")
 nom_proprietaire = infos.get("nom_proprietaire")
-nom_animal       = infos.get("nom_animal")
+nom_animal = infos.get("nom_animal")
 
-# 5. Recherche du contrat
+# 5. Vérification RPC pour Hélène Zambetti
+terme = "%Hélène Zambetti%"
+st.write("🔍 Vérification RPC avec terme :", terme)
+resp = conn.rpc("search_contrat_by_name", {"term": terme}).execute()
+st.write("▶︎ Statut RPC :", resp)
+res_rpc = resp.data
+
+# 6. Recherche dans la base
 res = []
-with st.spinner("🔗 Recherche du contrat…"):
-    try:
-        if identification:
-            res = conn.table("contrats_animaux") \
-                .select("proprietaire,animal,type_animal,date_naissance,identification,formule") \
-                .eq("identification", identification) \
-                .limit(1).execute().data
-        elif nom_proprietaire:
-            terme = f"%{nom_proprietaire.strip()}%"
-            res = conn.rpc("search_contrat_by_name", {"term": terme}).execute().data
-        elif nom_animal:
-            terme = f"%{nom_animal.strip()}%"
-            res = conn.rpc("search_contrat_by_name", {"term": terme}).execute().data
-    except Exception as e:
-        st.warning(f"⚠️ Recherche échouée : {e}")
+try:
+    if identification:
+        res = conn.table("contrats_animaux") \
+            .select("proprietaire,animal,type_animal,date_naissance,identification,formule") \
+            .eq("identification", identification) \
+            .limit(1).execute().data
+    elif nom_proprietaire:
+        res = conn.rpc("search_contrat_by_name", {"term": terme}).execute().data
+    elif nom_animal:
+        res = conn.rpc("search_contrat_by_name", {"term": terme}).execute().data
+except Exception as e:
+    st.warning(f"⚠️ Recherche échouée : {e}")
 
-# 6. Détermination de la formule cliente
+# 7. Définir la formule
 if res and len(res) == 1:
     client = res[0]
     formule_client = client["formule"]
@@ -114,22 +117,22 @@ elif res and len(res) > 1:
     client = res[idx]
     formule_client = client["formule"]
 else:
-    st.warning("⚠️ Aucun contrat trouvé – mode simulation activé.")
+    st.warning("⚠️ Aucun contrat trouvé – mode simulation.")
     formule_client = formule_simulation
     client = {
         "proprietaire": nom_proprietaire or "Simulation",
-        "animal":       nom_animal or "Simulation",
-        "type_animal":  "",
-        "formule":      formule_client
+        "animal": nom_animal or "Simulation",
+        "type_animal": "",
+        "formule": formule_client
     }
 
-# 7. Affichage infos client/animal
+# 8. Affichage infos client
 st.sidebar.markdown("### Client & Animal")
 st.sidebar.markdown(f"**Propriétaire :** {client['proprietaire']}")
 st.sidebar.markdown(f"**Animal :** {client['animal']} ({client['type_animal']})")
 st.sidebar.markdown(f"**Formule :** {client['formule']}")
 
-# 8. Calcul du remboursement
+# 9. Calcul remboursement
 with st.spinner("⏳ Calcul du remboursement..."):
     try:
         result = processor.process_facture_pennypet(
@@ -141,11 +144,12 @@ with st.spinner("⏳ Calcul du remboursement..."):
             st.error("❌ Calcul échoué.")
             st.stop()
     except Exception as e:
-        st.error(f"❌ Erreur calcul : {e}")
+        st.error(f"❌ Erreur : {e}")
         st.stop()
 
-# 9. Affichage du détail du remboursement
+# 10. Affichage détail exhaustif
 st.subheader("📊 Détails du remboursement")
+import pandas as pd
 
 df = pd.DataFrame(result["remboursements"])
 df = df.rename(columns={
@@ -164,8 +168,7 @@ col1.metric("Total facture", f"{result['total_facture']:.2f} €")
 col2.metric("Total remboursé", f"{result['total_remboursement']:.2f} €")
 col3.metric("Reste à charge", f"{result['reste_total_a_charge']:.2f} €")
 
-
-# 10. Enregistrement optionnel
+# 11. Enregistrement
 if res and st.button("💾 Enregistrer le remboursement"):
     try:
         contrat_id = conn.table("contrats_animaux") \
@@ -181,4 +184,4 @@ if res and st.button("💾 Enregistrer le remboursement"):
         }]).execute()
         st.success("✅ Remboursement enregistré.")
     except Exception as e:
-        st.error(f"❌ Erreur enregistrement : {e}")
+        st.error(f"❌ Erreur : {e}")
