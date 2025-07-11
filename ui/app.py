@@ -9,7 +9,7 @@ import pandas as pd
 from supabase import create_client
 from llm_parser.pennypet_processor import PennyPetProcessor
 
-# Page config et style
+# Page configuration and styling
 st.set_page_config(
     page_title="PennyPet – Extraction & Remboursement",
     layout="wide"
@@ -35,14 +35,14 @@ url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
 supabase = create_client(url, key)
 
-# 2. Contrôles sidebar
+# 2. Sidebar controls
 with st.sidebar:
     st.header("Paramètres")
     provider = st.selectbox("Modèle Vision", ["qwen", "mistral"], index=0)
     formules_possibles = ["START", "PREMIUM", "INTEGRAL", "INTEGRAL_PLUS"]
     formule_simulation = st.selectbox("Formule (simulation)", formules_possibles, index=0)
 
-# 3. Upload fichier
+# 3. Upload de la facture
 st.subheader("Importez votre facture")
 uploaded = st.file_uploader("", type=["pdf", "jpg", "png"], label_visibility="collapsed")
 if not uploaded:
@@ -55,12 +55,12 @@ if not bytes_data:
 
 processor = PennyPetProcessor()
 
-# 4. Extraction initiale
+# 4. Extraction initiale des infos client
 with st.spinner("🔍 Extraction des infos client..."):
     try:
         temp = processor.process_facture_pennypet(
             file_bytes=bytes_data,
-            formule_client="INTEGRAL",
+            formule_client="INTEGRAL",  # neutre pour extraction initiale
             llm_provider=provider
         )
         if not isinstance(temp, dict):
@@ -79,20 +79,20 @@ nom_animal       = infos.get("nom_animal")
 res = []
 with st.spinner("🔗 Recherche du contrat…"):
     try:
-        # 5.a d’abord tentez par identification
+        # 5.a Recherche par identification
         if identification:
             res = supabase.table("contrats_animaux") \
                 .select("proprietaire,animal,type_animal,date_naissance,identification,formule") \
                 .eq("identification", identification) \
                 .limit(1).execute().data
-        # 5.b si pas de résultat, ou pas d’identification, on bascule sur le nom
+        # 5.b Fallback recherche par nom si pas de résultat
         if not res and nom_proprietaire:
             terme = f"%{nom_proprietaire.strip()}%"
             st.write("🔍 Recherche RPC par nom avec term :", terme)
             rpc_resp = supabase.rpc("search_contrat_by_name", {"term": terme}).execute()
             st.write("▶︎ RPC status:", rpc_resp)
             res = rpc_resp.data
-        # 5.c enfin, si toujours rien et un nom d’animal, on retente par animal
+        # 5.c Fallback recherche par nom d'animal si toujours rien
         if not res and nom_animal:
             terme = f"%{nom_animal.strip()}%"
             st.write("🔍 Recherche RPC par animal avec term :", terme)
@@ -101,7 +101,7 @@ with st.spinner("🔗 Recherche du contrat…"):
     except Exception as e:
         st.warning(f"⚠️ Recherche échouée : {e}")
 
-# 6. Définir la formule cliente
+# 6. Détermination de la formule cliente
 if res and len(res) == 1:
     client = res[0]
     formule_client = client["formule"]
@@ -123,7 +123,7 @@ else:
         "formule":      formule_client
     }
 
-# 7. Affichage infos client/animal
+# 7. Affichage des infos client/animal
 st.sidebar.markdown("### Client & Animal")
 st.sidebar.markdown(f"**Propriétaire :** {client['proprietaire']}")
 st.sidebar.markdown(f"**Animal :** {client['animal']} ({client['type_animal']})")
@@ -141,10 +141,10 @@ with st.spinner("⏳ Calcul du remboursement..."):
             st.error("❌ Calcul échoué.")
             st.stop()
     except Exception as e:
-        st.error(f"❌ Erreur : {e}")
+        st.error(f"❌ Erreur calcul : {e}")
         st.stop()
 
-# 9. Affichage détail exhaustif
+# 9. Affichage détaillé du remboursement
 st.subheader("📊 Détails du remboursement")
 df = pd.DataFrame(result["remboursements"])
 df = df.rename(columns={
