@@ -75,23 +75,27 @@ identification   = infos.get("identification")
 nom_proprietaire = infos.get("nom_proprietaire")
 nom_animal       = infos.get("nom_animal")
 
-# 5. Recherche du contrat via RPC (accent + ordre)
+# 5. Recherche du contrat via identification puis RPC (accent + ordre)
 res = []
 with st.spinner("🔗 Recherche du contrat…"):
     try:
+        # 5.a d’abord tentez par identification
         if identification:
             res = supabase.table("contrats_animaux") \
                 .select("proprietaire,animal,type_animal,date_naissance,identification,formule") \
                 .eq("identification", identification) \
                 .limit(1).execute().data
-        elif nom_proprietaire:
+        # 5.b si pas de résultat, ou pas d’identification, on bascule sur le nom
+        if not res and nom_proprietaire:
             terme = f"%{nom_proprietaire.strip()}%"
-            st.write("🔍 Term recherché :", terme)
+            st.write("🔍 Recherche RPC par nom avec term :", terme)
             rpc_resp = supabase.rpc("search_contrat_by_name", {"term": terme}).execute()
             st.write("▶︎ RPC status:", rpc_resp)
             res = rpc_resp.data
-        elif nom_animal:
+        # 5.c enfin, si toujours rien et un nom d’animal, on retente par animal
+        if not res and nom_animal:
             terme = f"%{nom_animal.strip()}%"
+            st.write("🔍 Recherche RPC par animal avec term :", terme)
             rpc_resp = supabase.rpc("search_contrat_by_name", {"term": terme}).execute()
             res = rpc_resp.data
     except Exception as e:
