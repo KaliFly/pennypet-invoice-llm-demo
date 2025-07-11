@@ -75,36 +75,29 @@ identification   = infos.get("identification")
 nom_proprietaire = infos.get("nom_proprietaire")
 nom_animal       = infos.get("nom_animal")
 
-# 5. Vérification RPC pour Hélène Zambetti
-terme = "%Hélène Zambetti%"
-st.write("🔍 Vérification RPC avec terme :", terme)
-resp = supabase.rpc("search_contrat_by_name", {"term": terme}).execute()
-st.write("▶︎ Statut RPC :", resp)
-res_rpc = resp.data
-
-# 6. Recherche dans la base
+# 5. Recherche du contrat via RPC (accent + ordre)
 res = []
-try:
-    if identification:
-        res = supabase.table("contrats_animaux") \
-            .select("proprietaire,animal,type_animal,date_naissance,identification,formule") \
-            .eq("identification", identification) \
-            .limit(1) \
-            .execute().data
-    elif nom_proprietaire:
-        terme = f"%{nom_proprietaire.strip()}%"
-        st.write("🔍 Term recherché :", terme)
-        resp2 = supabase.rpc("search_contrat_by_name", {"term": terme}).execute()
-        st.write("▶︎ RPC status:", resp2)
-        res = resp2.data
-    elif nom_animal:
-        terme = f"%{nom_animal.strip()}%"
-        resp3 = supabase.rpc("search_contrat_by_name", {"term": terme}).execute()
-        res = resp3.data
-except Exception as e:
-    st.warning(f"⚠️ Recherche échouée : {e}")
+with st.spinner("🔗 Recherche du contrat…"):
+    try:
+        if identification:
+            res = supabase.table("contrats_animaux") \
+                .select("proprietaire,animal,type_animal,date_naissance,identification,formule") \
+                .eq("identification", identification) \
+                .limit(1).execute().data
+        elif nom_proprietaire:
+            terme = f"%{nom_proprietaire.strip()}%"
+            st.write("🔍 Term recherché :", terme)
+            rpc_resp = supabase.rpc("search_contrat_by_name", {"term": terme}).execute()
+            st.write("▶︎ RPC status:", rpc_resp)
+            res = rpc_resp.data
+        elif nom_animal:
+            terme = f"%{nom_animal.strip()}%"
+            rpc_resp = supabase.rpc("search_contrat_by_name", {"term": terme}).execute()
+            res = rpc_resp.data
+    except Exception as e:
+        st.warning(f"⚠️ Recherche échouée : {e}")
 
-# 7. Définir la formule
+# 6. Définir la formule cliente
 if res and len(res) == 1:
     client = res[0]
     formule_client = client["formule"]
@@ -126,13 +119,13 @@ else:
         "formule":      formule_client
     }
 
-# 8. Affichage infos client
+# 7. Affichage infos client/animal
 st.sidebar.markdown("### Client & Animal")
 st.sidebar.markdown(f"**Propriétaire :** {client['proprietaire']}")
 st.sidebar.markdown(f"**Animal :** {client['animal']} ({client['type_animal']})")
 st.sidebar.markdown(f"**Formule :** {client['formule']}")
 
-# 9. Calcul remboursement
+# 8. Calcul du remboursement
 with st.spinner("⏳ Calcul du remboursement..."):
     try:
         result = processor.process_facture_pennypet(
@@ -147,7 +140,7 @@ with st.spinner("⏳ Calcul du remboursement..."):
         st.error(f"❌ Erreur : {e}")
         st.stop()
 
-# 10. Affichage détail exhaustif
+# 9. Affichage détail exhaustif
 st.subheader("📊 Détails du remboursement")
 df = pd.DataFrame(result["remboursements"])
 df = df.rename(columns={
@@ -166,7 +159,7 @@ col1.metric("Total facture", f"{result['total_facture']:.2f} €")
 col2.metric("Total remboursé", f"{result['total_remboursement']:.2f} €")
 col3.metric("Reste à charge", f"{result['reste_total_a_charge']:.2f} €")
 
-# 11. Enregistrement
+# 10. Enregistrement optionnel
 if res and st.button("💾 Enregistrer le remboursement"):
     try:
         contrat_id = supabase.table("contrats_animaux") \
