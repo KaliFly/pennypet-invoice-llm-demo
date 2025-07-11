@@ -8,7 +8,7 @@ import streamlit as st
 from st_supabase_connection import SupabaseConnection
 from llm_parser.pennypet_processor import PennyPetProcessor
 
-# Page configuration and custom styling
+# Page configuration and styling
 st.set_page_config(
     page_title="PennyPet Invoice + DB",
     layout="wide",
@@ -26,9 +26,9 @@ st.markdown(
 )
 st.markdown('<h1 class="title">PennyPet – Extraction & Remboursement</h1>', unsafe_allow_html=True)
 
-# 1. Supabase connection
+# 1. Connexion à Supabase
 if "SUPABASE_URL" not in st.secrets or "SUPABASE_KEY" not in st.secrets:
-    st.error("⚠️ Veuillez définir SUPABASE_URL et SUPABASE_KEY dans vos secrets.")
+    st.error("❗ Veuillez définir SUPABASE_URL et SUPABASE_KEY dans vos secrets.")
     st.stop()
 try:
     conn = st.connection(
@@ -41,33 +41,33 @@ except Exception as e:
     st.error(f"❌ Erreur de connexion à Supabase : {e}")
     st.stop()
 
-# 2. Sidebar inputs
+# 2. Sidebar controls
 with st.sidebar:
     st.header("Paramètres")
     provider = st.selectbox("Modèle Vision", ["qwen", "mistral"], index=0)
     formules_possibles = ["START", "PREMIUM", "INTEGRAL", "INTEGRAL_PLUS"]
-    formule_simulation = st.selectbox("Formule pour simulation", formules_possibles, index=0)
+    formule_simulation = st.selectbox("Formule (simulation)", formules_possibles, index=0)
 
 # 3. File uploader
 st.subheader("Importez votre facture")
 uploaded = st.file_uploader("", type=["pdf", "jpg", "png"], label_visibility="collapsed")
 if not uploaded:
-    st.info("📄 Déposez un PDF, JPG ou PNG pour démarrer.")
+    st.info("📄 Déposez un PDF, JPG ou PNG pour commencer.")
     st.stop()
 
 bytes_data = uploaded.read()
 if not bytes_data:
-    st.error("⚠️ Le fichier uploadé est vide ou corrompu.")
+    st.error("⚠️ Le fichier est vide ou corrompu.")
     st.stop()
 
 processor = PennyPetProcessor()
 
-# 4. Initial extraction
-with st.spinner("🔍 Extraction des informations client..."):
+# 4. Extraction initiale
+with st.spinner("🔍 Extraction des infos client..."):
     try:
         temp = processor.process_facture_pennypet(
             file_bytes=bytes_data,
-            formule_client="INTEGRAL",
+            formule_client="INTEGRAL",  # neutre pour extraction
             llm_provider=provider
         )
         if not isinstance(temp, dict):
@@ -82,7 +82,7 @@ identification   = infos.get("identification")
 nom_proprietaire = infos.get("nom_proprietaire")
 nom_animal       = infos.get("nom_animal")
 
-# 5. Contract lookup
+# 5. Recherche du contrat
 res = []
 with st.spinner("🔗 Recherche du contrat…"):
     try:
@@ -100,7 +100,7 @@ with st.spinner("🔗 Recherche du contrat…"):
     except Exception as e:
         st.warning(f"⚠️ Recherche échouée : {e}")
 
-# 6. Determine formula
+# 6. Détermination de la formule cliente
 if res and len(res) == 1:
     client = res[0]
     formule_client = client["formule"]
@@ -113,7 +113,7 @@ elif res and len(res) > 1:
     client = res[idx]
     formule_client = client["formule"]
 else:
-    st.warning("⚠️ Aucun contrat trouvé. Mode simulation activé.")
+    st.warning("⚠️ Aucun contrat trouvé – mode simulation activé.")
     formule_client = formule_simulation
     client = {
         "proprietaire": nom_proprietaire or "Simulation",
@@ -122,14 +122,14 @@ else:
         "formule":      formule_client
     }
 
-# 7. Display client info
-st.sidebar.markdown("### Client / Animal")
+# 7. Affichage infos client/animal
+st.sidebar.markdown("### Client & Animal")
 st.sidebar.markdown(f"**Propriétaire :** {client['proprietaire']}")
 st.sidebar.markdown(f"**Animal :** {client['animal']} ({client['type_animal']})")
 st.sidebar.markdown(f"**Formule :** {client['formule']}")
 
-# 8. Full processing
-with st.spinner("⏳ Calcul du remboursement en cours..."):
+# 8. Calcul du remboursement
+with st.spinner("⏳ Calcul du remboursement..."):
     try:
         result = processor.process_facture_pennypet(
             file_bytes=bytes_data,
@@ -137,13 +137,13 @@ with st.spinner("⏳ Calcul du remboursement en cours..."):
             llm_provider=provider
         )
         if not isinstance(result, dict):
-            st.error("❌ Traitement échoué.")
+            st.error("❌ Calcul échoué.")
             st.stop()
     except Exception as e:
-        st.error(f"❌ Erreur calcul remboursement : {e}")
+        st.error(f"❌ Erreur calcul : {e}")
         st.stop()
 
-# 9. Show results
+# 9. Affichage du résultat
 st.subheader("📊 Détails du remboursement")
 try:
     st.json({
@@ -153,9 +153,9 @@ try:
         "reste_à_charge":  result["reste_total_a_charge"]
     }, expanded=False)
 except Exception as e:
-    st.error(f"❌ Erreur affichage résultat : {e}")
+    st.error(f"❌ Erreur affichage : {e}")
 
-# 10. Save to database
+# 10. Enregistrement optionnel
 if res and st.button("💾 Enregistrer le remboursement"):
     try:
         contrat_id = conn.table("contrats_animaux") \
