@@ -33,25 +33,29 @@ if uploaded:
 
     processor = PennyPetProcessor()
 
-    with st.spinner("Analyse et calcul du remboursement en cours..."):
+    # 4. Traitement initial pour extraire les infos de base
+    with st.spinner("Extraction des informations client en cours..."):
         try:
-            result = processor.process_facture_pennypet(
+            # Premier appel pour extraire les infos client uniquement
+            result_temp = processor.process_facture_pennypet(
                 file_bytes=bytes_data,
-                formule_client="",  # vide pour laisser le LLM détecter ou simuler
+                formule_client="INTEGRAL",  # Formule temporaire pour l'extraction
                 llm_provider=provider
             )
-            if result is None or not isinstance(result, dict):
-                st.error("Le traitement n'a retourné aucun résultat exploitable.")
+            if result_temp is None or not isinstance(result_temp, dict):
+                st.error("Impossible d'extraire les informations de la facture.")
                 st.stop()
         except Exception as e:
-            st.error(f"Erreur lors de l'analyse : {e}")
+            st.error(f"Erreur lors de l'extraction des informations : {e}")
             st.stop()
 
-    infos = result.get("infos_client", {}) if isinstance(result, dict) else {}
+    # 5. Récupération des infos client/animal extraites
+    infos = result_temp.get("infos_client", {}) if isinstance(result_temp, dict) else {}
     identification = infos.get("identification")
     nom_proprietaire = infos.get("nom_proprietaire")
     nom_animal = infos.get("nom_animal")
 
+    # 6. Recherche automatique dans la base via st-supabase-connection
     res = []
     try:
         if identification:
@@ -78,8 +82,10 @@ if uploaded:
     except Exception as e:
         st.warning(f"Recherche Supabase échouée : {e}")
 
+    # 7. Sélection du contrat ou simulation
     if res and len(res) == 1:
         client = res[0]
+        formule_client = client["formule"]  # Récupération de la formule réelle
     elif res and len(res) > 1:
         choix = st.selectbox(
             "Plusieurs contrats trouvés, sélectionnez le bon :",
@@ -87,19 +93,38 @@ if uploaded:
         )
         idx = [f"{r['proprietaire']} - {r['animal']} ({r['identification']})" for r in res].index(choix)
         client = res[idx]
+        formule_client = client["formule"]  # Récupération de la formule réelle
     else:
         st.warning("Aucun contrat trouvé. Sélectionnez une formule pour simuler la prise en charge.")
+        formule_client = select_formule()  # Formule manuelle sélectionnée
         client = {
             "proprietaire": nom_proprietaire or "Simulation",
             "animal": nom_animal or "Simulation",
             "type_animal": "",
-            "formule": select_formule()
+            "formule": formule_client
         }
 
+    # 8. Affichage des infos client/animal
     st.sidebar.markdown(f"**Propriétaire :** {client.get('proprietaire','')}")
     st.sidebar.markdown(f"**Animal :** {client.get('animal','')} ({client.get('type_animal','')})")
     st.sidebar.markdown(f"**Formule :** {client.get('formule','')}")
 
+    # 9. Traitement complet avec la bonne formule
+    with st.spinner("Analyse et calcul du remboursement en cours..."):
+        try:
+            result = processor.process_facture_pennypet(
+                file_bytes=bytes_data,
+                formule_client=formule_client,  # ← CORRECTION PRINCIPALE : formule non vide
+                llm_provider=provider
+            )
+            if result is None or not isinstance(result, dict):
+                st.error("Le traitement n'a retourné aucun résultat exploitable.")
+                st.stop()
+        except Exception as e:
+            st.error(f"Erreur lors de l'analyse : {e}")
+            st.stop()
+
+    # 10. Affichage du résultat de remboursement
     st.subheader("Détails du remboursement")
     try:
         st.json({
@@ -111,6 +136,7 @@ if uploaded:
     except Exception as e:
         st.error(f"Erreur lors de l'affichage du résultat : {e}")
 
+    # 11. Enregistrement optionnel (si contrat réel)
     if res and st.button("Enregistrer le remboursement"):
         try:
             contrat_id = (
@@ -138,4 +164,4 @@ if uploaded:
         except Exception as e:
             st.error(f"Erreur lors de l'enregistrement : {e}")
 else:
-    st.info("Importez une facture pour démarrer l’analyse automatique et la simulation de remboursement.")
+    st.info("Importez une facture pour démarrer l'analyse automatique et la simulation de remboursement.")

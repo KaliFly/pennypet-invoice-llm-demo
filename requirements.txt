@@ -20,3 +20,5 @@ toml>=0.10.1,<2.0
 watchdog>=2.1.5,<7.0
 click>=7.0,<9.0
 jsonschema>=4.0
+# Fuzzy matching pour normalisation ← AJOUT
+rapidfuzz>=3.0,<4.0

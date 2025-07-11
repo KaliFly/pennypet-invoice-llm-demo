@@ -1,1 +1,3 @@
-# Ce fichier peut rester vide, il permet de traiter config/ comme un package Python.
+from .pennypet_processor import PennyPetProcessor, pennypet_processor
+
+__all__ = ["PennyPetProcessor", "pennypet_processor"]
