@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import streamlit as st
 import pandas as pd
-from st_supabase_connection import SupabaseConnection
+from supabase import create_client
 from llm_parser.pennypet_processor import PennyPetProcessor
 
 # Page config et style
@@ -30,16 +30,10 @@ st.markdown('<h1 class="title">PennyPet – Extraction & Remboursement</h1>', un
 if "SUPABASE_URL" not in st.secrets or "SUPABASE_KEY" not in st.secrets:
     st.error("❗ Veuillez définir SUPABASE_URL et SUPABASE_KEY dans vos secrets.")
     st.stop()
-try:
-    conn = st.connection(
-        "supabase",
-        type=SupabaseConnection,
-        url=st.secrets["SUPABASE_URL"],
-        key=st.secrets["SUPABASE_KEY"]
-    )
-except Exception as e:
-    st.error(f"❌ Erreur de connexion à Supabase : {e}")
-    st.stop()
+
+url = st.secrets["SUPABASE_URL"]
+key = st.secrets["SUPABASE_KEY"]
+supabase = create_client(url, key)
 
 # 2. Contrôles sidebar
 with st.sidebar:
@@ -54,7 +48,6 @@ uploaded = st.file_uploader("", type=["pdf", "jpg", "png"], label_visibility="co
 if not uploaded:
     st.info("📄 Déposez un PDF, JPG ou PNG pour commencer.")
     st.stop()
-
 bytes_data = uploaded.read()
 if not bytes_data:
     st.error("⚠️ Le fichier est vide ou corrompu.")
@@ -78,14 +71,14 @@ with st.spinner("🔍 Extraction des infos client..."):
         st.stop()
 
 infos = temp.get("infos_client", {})
-identification = infos.get("identification")
+identification   = infos.get("identification")
 nom_proprietaire = infos.get("nom_proprietaire")
-nom_animal = infos.get("nom_animal")
+nom_animal       = infos.get("nom_animal")
 
 # 5. Vérification RPC pour Hélène Zambetti
 terme = "%Hélène Zambetti%"
 st.write("🔍 Vérification RPC avec terme :", terme)
-resp = conn.rpc("search_contrat_by_name", {"term": terme}).execute()
+resp = supabase.rpc("search_contrat_by_name", {"term": terme}).execute()
 st.write("▶︎ Statut RPC :", resp)
 res_rpc = resp.data
 
@@ -93,14 +86,21 @@ res_rpc = resp.data
 res = []
 try:
     if identification:
-        res = conn.table("contrats_animaux") \
+        res = supabase.table("contrats_animaux") \
             .select("proprietaire,animal,type_animal,date_naissance,identification,formule") \
             .eq("identification", identification) \
-            .limit(1).execute().data
+            .limit(1) \
+            .execute().data
     elif nom_proprietaire:
-        res = conn.rpc("search_contrat_by_name", {"term": terme}).execute().data
+        terme = f"%{nom_proprietaire.strip()}%"
+        st.write("🔍 Term recherché :", terme)
+        resp2 = supabase.rpc("search_contrat_by_name", {"term": terme}).execute()
+        st.write("▶︎ RPC status:", resp2)
+        res = resp2.data
     elif nom_animal:
-        res = conn.rpc("search_contrat_by_name", {"term": terme}).execute().data
+        terme = f"%{nom_animal.strip()}%"
+        resp3 = supabase.rpc("search_contrat_by_name", {"term": terme}).execute()
+        res = resp3.data
 except Exception as e:
     st.warning(f"⚠️ Recherche échouée : {e}")
 
@@ -121,9 +121,9 @@ else:
     formule_client = formule_simulation
     client = {
         "proprietaire": nom_proprietaire or "Simulation",
-        "animal": nom_animal or "Simulation",
-        "type_animal": "",
-        "formule": formule_client
+        "animal":       nom_animal or "Simulation",
+        "type_animal":  "",
+        "formule":      formule_client
     }
 
 # 8. Affichage infos client
@@ -149,8 +149,6 @@ with st.spinner("⏳ Calcul du remboursement..."):
 
 # 10. Affichage détail exhaustif
 st.subheader("📊 Détails du remboursement")
-import pandas as pd
-
 df = pd.DataFrame(result["remboursements"])
 df = df.rename(columns={
     "libelle_original":    "Libellé brut",
@@ -171,11 +169,11 @@ col3.metric("Reste à charge", f"{result['reste_total_a_charge']:.2f} €")
 # 11. Enregistrement
 if res and st.button("💾 Enregistrer le remboursement"):
     try:
-        contrat_id = conn.table("contrats_animaux") \
+        contrat_id = supabase.table("contrats_animaux") \
             .select("id") \
             .eq("identification", client["identification"]) \
             .limit(1).execute().data[0]["id"]
-        conn.table("remboursements").insert([{
+        supabase.table("remboursements").insert([{
             "id_contrat":       contrat_id,
             "date_acte":        "now()",
             "montant_facture":  result["total_facture"],
