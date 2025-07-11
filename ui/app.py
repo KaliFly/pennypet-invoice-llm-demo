@@ -5,6 +5,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import streamlit as st
+import pandas as pd
 from st_supabase_connection import SupabaseConnection
 from llm_parser.pennypet_processor import PennyPetProcessor
 
@@ -143,17 +144,25 @@ with st.spinner("⏳ Calcul du remboursement..."):
         st.error(f"❌ Erreur calcul : {e}")
         st.stop()
 
-# 9. Affichage du résultat
+# 9. Affichage du détail du remboursement
 st.subheader("📊 Détails du remboursement")
-try:
-    st.json({
-        "lignes":          result["remboursements"],
-        "total_facture":   result["total_facture"],
-        "total_remboursé": result["total_remboursement"],
-        "reste_à_charge":  result["reste_total_a_charge"]
-    }, expanded=False)
-except Exception as e:
-    st.error(f"❌ Erreur affichage : {e}")
+
+df = pd.DataFrame(result["remboursements"])
+df = df.rename(columns={
+    "libelle_original":    "Libellé brut",
+    "code_normalise":      "Code normalisé",
+    "montant_ht":          "Montant HT (€)",
+    "taux_applique":       "Taux appliqué (%)",
+    "remboursement_brut":  "Remboursement brut (€)",
+    "remboursement_final": "Remboursement final (€)",
+    "reste_a_charge":      "Reste à charge (€)"
+})
+st.dataframe(df, use_container_width=True)
+
+col1, col2, col3 = st.columns(3)
+col1.metric("Total facture", f"{result['total_facture']:.2f} €")
+col2.metric("Total remboursé", f"{result['total_remboursement']:.2f} €")
+col3.metric("Reste à charge", f"{result['reste_total_a_charge']:.2f} €")
 
 # 10. Enregistrement optionnel
 if res and st.button("💾 Enregistrer le remboursement"):
