@@ -164,6 +164,7 @@ col1.metric("Total facture", f"{result['total_facture']:.2f} €")
 col2.metric("Total remboursé", f"{result['total_remboursement']:.2f} €")
 col3.metric("Reste à charge", f"{result['reste_total_a_charge']:.2f} €")
 
+
 # 10. Enregistrement optionnel
 if res and st.button("💾 Enregistrer le remboursement"):
     try:
