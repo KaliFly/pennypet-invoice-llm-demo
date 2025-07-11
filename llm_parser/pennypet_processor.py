@@ -27,32 +27,24 @@ class NormaliseurAMV:
         # Liste exhaustive de mots-clés pharmaceutiques
         self.termes_medicaments_semantiques = [
             # Formes orales
-            "comprimé", "comprime", "comprimés", "comprimee", "comp", "cps", "pilule", "pilules",
+            "comprimé", "comprime", "comprimés", "comprimee", "comp", "comp.", "cps", "pilule", "pilules",
             "dragée", "dragee", "dragées", "dragees", "cachet", "cachets", "gélule", "gelule", "gélules", "gelules",
             "tablette", "tablettes", "capsule", "capsules",
-
             # Unités & dosages
-            "mg", "g", "gr", "µg", "mcg", "ml", "l", "iu", "ui", "dose", "doses", "unité", "unité(s)", "un.", "dose(s)",
-
+            "mg", "mg.", "g", "gr", "µg", "mcg", "ml", "ml.", "l", "iu", "ui", "dose", "doses", "unité", "unité(s)", "un.", "dose(s)",
             # Liquides & suspensions
             "sirop", "sirops", "goutte", "gouttes", "suspension", "suspensions", "solution", "solutions", "élixir", "elixir", "elixirs", "collyre", "collyres",
-
             # Injectables
             "injection", "injections", "injectable", "injectables", "perf", "perfusion", "perfusions", "iv", "im", "sc",
             "voie intraveineuse", "voie intramusculaire", "voie sous-cutanée", "seringue", "seringues",
-
             # Topiques
             "crème", "creme", "crèmes", "cremes", "pommade", "pommades", "lotion", "lotions", "gel", "gels", "spray", "sprays", "patch", "patchs", "transdermique", "transdermal", "ointment",
-
             # Suppositoires et inserts
             "suppositoire", "suppositoires", "insert", "inserts", "pessaire", "pessaires",
-
             # Inhalation
             "inhalant", "inhalants", "aérosol", "aerosol", "aérosols", "aerosols", "nébuliseur", "nebuliseur", "nébuliseurs", "nebuliseurs", "spray nasal", "inhalateur", "inhalateurs",
-
             # Solides spéciaux
             "sachet", "sachets", "granule", "granules", "poudre", "poudres",
-
             # Abréviations usuelles
             "tbl", "cap", "inj", "soln", "susp", "drg", "un.", "comp.", "mg/ml"
         ]
@@ -101,6 +93,7 @@ class NormaliseurAMV:
             return None
 
         libelle_clean = libelle_brut.upper().strip()
+        libelle_lower = libelle_brut.lower().strip()
 
         # Cache lookup
         if libelle_clean in self.cache:
@@ -124,14 +117,18 @@ class NormaliseurAMV:
                 scorer=fuzz.token_set_ratio
             )
             if score >= 85:
-                # Mapping AMV si possible
                 code_amv = self.mapping_amv.get(match)
                 self.cache[libelle_clean] = code_amv or "MEDICAMENTS"
                 return code_amv or "MEDICAMENTS"
 
-        # Fallback sémantique : reconnaissance de forme pharmaceutique
-        libelle_lower = libelle_brut.lower()
-        if any(t in libelle_lower for t in self.termes_medicaments_semantiques):
+        # Fallback sémantique ultra-robuste : détection par regex mot entier
+        for t in self.termes_medicaments_semantiques:
+            if re.search(rf"\b{re.escape(t)}\b", libelle_lower):
+                self.cache[libelle_clean] = "MEDICAMENTS"
+                return "MEDICAMENTS"
+
+        # Bonus : détection accolée à un chiffre (ex : 10mg, 5ml, 2comp)
+        if re.search(r"\d+\s?(mg|ml|comp|comp\.|cps|tbl|g|ui|iu)\b", libelle_lower):
             self.cache[libelle_clean] = "MEDICAMENTS"
             return "MEDICAMENTS"
 
