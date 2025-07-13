@@ -24,7 +24,7 @@ class NormaliseurAMV:
         self.mapping_amv = config.mapping_amv
         self.cache = {}
 
-        # Liste exhaustive de mots-clés pharmaceutiques (singulier, pluriel, abréviations, avec/sans point)
+        # Liste exhaustive de mots-clés pharmaceutiques
         self.termes_medicaments_semantiques = [
             # Formes orales
             "comprimé", "comprime", "comprimés", "comprimee", "comp", "comp.", "cps", "pilule", "pilules",
@@ -86,48 +86,46 @@ class NormaliseurAMV:
 
     def normalise_medicament(self, libelle_brut: str) -> Optional[str]:
         """
-        Normalise un libellé de médicament via fuzzy matching + fallback sémantique.
-        Si aucune correspondance, détecte les formes pharmaceutiques et mappe sur 'MEDICAMENTS'.
+        Normalise un libellé de médicament par :
+        1. Fuzzy matching (si RapidFuzz dispo)
+        2. Fallback sémantique (regex sur formes pharmaceutiques)
+        3. Détection « 10mg / 5ml / 2comp » accolée à un chiffre
         """
-        if not libelle_brut or not RAPIDFUZZ_AVAILABLE:
+        if not libelle_brut:
             return None
 
         libelle_clean = libelle_brut.upper().strip()
         libelle_lower = libelle_brut.lower().strip()
 
-        # Cache lookup
+        # Cache
         if libelle_clean in self.cache:
             return self.cache[libelle_clean]
 
-        # Fuzzy matching sur les médicaments
-        medicaments = []
-        try:
+        # ---------- 1. Fuzzy matching ----------
+        if RAPIDFUZZ_AVAILABLE:
+            medicaments = []
             for _, row in self.medicaments_df.iterrows():
-                if 'medicament' in row:
-                    medicaments.append(row['medicament'])
-                if 'synonymes_ocr' in row and isinstance(row['synonymes_ocr'], list):
-                    medicaments.extend(row['synonymes_ocr'])
-        except Exception:
-            pass
+                if "medicament" in row:
+                    medicaments.append(row["medicament"])
+                if isinstance(row.get("synonymes_ocr"), list):
+                    medicaments.extend(row["synonymes_ocr"])
 
-        if medicaments:
-            match, score, _ = process.extractOne(
-                libelle_clean,
-                medicaments,
-                scorer=fuzz.token_set_ratio
-            )
-            if score >= 85:
-                code_amv = self.mapping_amv.get(match)
-                self.cache[libelle_clean] = code_amv or "MEDICAMENTS"
-                return code_amv or "MEDICAMENTS"
+            if medicaments:
+                match, score, _ = process.extractOne(
+                    libelle_clean, medicaments, scorer=fuzz.token_set_ratio
+                )
+                if score >= 85:
+                    code_amv = self.mapping_amv.get(match)
+                    self.cache[libelle_clean] = code_amv or "MEDICAMENTS"
+                    return code_amv or "MEDICAMENTS"
 
-        # Fallback sémantique ultra-robuste : détection par regex mot entier
+        # ---------- 2. Fallback sémantique ----------
         for t in self.termes_medicaments_semantiques:
             if re.search(rf"\b{re.escape(t)}\b", libelle_lower):
                 self.cache[libelle_clean] = "MEDICAMENTS"
                 return "MEDICAMENTS"
 
-        # Bonus : détection accolée à un chiffre (ex : 10mg, 5ml, 2comp)
+        # ---------- 3. Unité accolée à un chiffre ----------
         if re.search(r"\d+\s?(mg|mg\.|ml|ml\.|comp|comp\.|cps|tbl|g|ui|iu)\b", libelle_lower):
             self.cache[libelle_clean] = "MEDICAMENTS"
             return "MEDICAMENTS"
@@ -184,9 +182,10 @@ class PennyPetProcessor:
         self,
         montant: float,
         code_acte: str,
-        formule: str
+        formule: str,
+        acte_est_accident: bool
     ) -> Dict[str, Any]:
-        """Calcul de remboursement avec gestion des erreurs améliorée"""
+        """Calcul de remboursement avec gestion du type de couverture"""
         if not formule or not code_acte:
             return {
                 "erreur": f"Formule ({formule}) ou code acte ({code_acte}) manquant",
@@ -209,6 +208,10 @@ class PennyPetProcessor:
                 df["actes_couverts"].apply(
                     lambda lst: code_acte in lst if isinstance(lst, list) else False
                 )
+            ) &
+            (
+                (df["type_couverture"] == "ACCIDENT_MALADIE") |
+                ((df["type_couverture"] == "ACCIDENT_SEULEMENT") & acte_est_accident)
             )
         )
         regles = df[mask]
@@ -301,7 +304,7 @@ class PennyPetProcessor:
         Pipeline complet avec normalisation des codes d'actes et médicaments :
         1. Extraction LLM → data, raw_content
         2. Normalisation des libellés
-        3. Calcul de chaque ligne
+        3. Calcul de chaque ligne (avec gestion accident)
         4. Agrégation des totaux
         """
         try:
@@ -311,10 +314,11 @@ class PennyPetProcessor:
         except Exception as e:
             raise ValueError(f"Erreur lors de l'extraction LLM : {e}")
 
-        # Utiliser la formule transmise (non vide maintenant)
         formule = formule_client or extraction.get("formule_utilisee", "INTEGRAL")
         lignes = extraction.get("lignes", [])
         remboursements: List[Dict[str, Any]] = []
+
+        motifs_accident = {"accident", "urgent", "urgence", "fract", "trauma"}
 
         for ligne in lignes:
             try:
@@ -322,16 +326,19 @@ class PennyPetProcessor:
             except (ValueError, TypeError):
                 montant = 0.0
 
-            # NORMALISATION DES CODES/LIBELLÉS - MODIFICATION PRINCIPALE
             libelle_brut = (ligne.get("code_acte") or ligne.get("description", "")).strip()
             code_normalise = self.normaliseur.normalise(libelle_brut)
 
-            # Traçabilité du mapping
+            # Détection accident (motif dans le libellé)
+            libelle_lower = libelle_brut.lower()
+            est_accident = any(m in libelle_lower for m in motifs_accident)
+
             ligne["libelle_original"] = libelle_brut
             ligne["code_normalise"] = code_normalise
 
-            # Calcul du remboursement avec le code normalisé
-            remb = self.calculer_remboursement_pennypet(montant, code_normalise, formule)
+            remb = self.calculer_remboursement_pennypet(
+                montant, code_normalise, formule, est_accident
+            )
             remboursements.append({**ligne, **remb})
 
         total_montant = sum(float(l.get("montant_ht", 0.0)) for l in lignes)

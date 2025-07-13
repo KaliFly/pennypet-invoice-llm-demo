@@ -1,26 +1,22 @@
 {
   "START": {
     "type": "aucune_couverture",
-    "remboursement": 0,
     "plafond": 0,
     "description": "Pas d’assurance incluse"
   },
   "PREMIUM": {
     "type": "accident_uniquement",
-    "remboursement": 100,
     "plafond": 500,
-    "description": "Fonds d’urgence accident – prise en charge à 100% des frais consécutifs à un accident, jusqu’à 500 € par an"
+    "description": "Fonds d’urgence accident – prise en charge des frais consécutifs à un accident, jusqu’à 500 € par an"
   },
   "INTEGRAL": {
     "type": "accident_et_maladie",
-    "remboursement": 50,
     "plafond": 1000,
-    "description": "Assurance santé animale – 50% de prise en charge des frais vétérinaires (accident & maladie), plafond 1 000 € par an"
+    "description": "Assurance santé animale – prise en charge des frais vétérinaires (accident & maladie), plafond 1 000 € par an"
   },
   "INTEGRAL_PLUS": {
     "type": "accident_et_maladie",
-    "remboursement": 100,
     "plafond": 1000,
-    "description": "Assurance santé animale – 100% de prise en charge des frais vétérinaires (accident & maladie), plafond 1 000 € par an"
+    "description": "Assurance santé animale – prise en charge à 100% des frais vétérinaires (accident & maladie), plafond 1 000 € par an"
   }
 }
