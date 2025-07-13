@@ -29,7 +29,7 @@ class NormaliseurAMV:
     """
     def __init__(self, config: PennyPetConfig):
         self.config = config
-        # Glossaire actes
+        # Glossaire actes (mots-clés en minuscules)
         self.termes_actes = set(config.actes_df["field_label"].str.lower())
         self.actes_df = config.actes_df.dropna(subset=["pattern"])
         # Glossaire médicaments
@@ -46,10 +46,10 @@ class NormaliseurAMV:
         if cle in self.cache:
             return self.cache[cle]
         # 1. Pattern CSV
-        for _, r in self.actes_df.iterrows():
-            if r["pattern"].search(cle):
-                self.cache[cle] = r["code_acte"]
-                return r["code_acte"]
+        for _, row in self.actes_df.iterrows():
+            if row["pattern"].search(cle):
+                self.cache[cle] = row["code_acte"]
+                return row["code_acte"]
         # 2. Fallback sémantique actes
         for t in self.termes_actes:
             if re.search(rf"(?<!\w){re.escape(t)}(?!\w)", low):
@@ -78,14 +78,15 @@ class NormaliseurAMV:
             if re.search(rf"(\d+\s*)?(?<!\w){re.escape(t)}s?(?!\w)", low):
                 self.cache[cle] = "MEDICAMENTS"
                 return "MEDICAMENTS"
-        # 2. Exact dans base médicaments
+        # 2. Recherche exacte dans la base de médicaments
         meds = [m.lower() for m in self.medicaments_df["medicament"].dropna()]
         if low in meds:
             self.cache[cle] = "MEDICAMENTS"
             return "MEDICAMENTS"
         # 3. Fuzzy matching
         if RAPIDFUZZ_AVAILABLE:
-            match, score, _ = process.extractOne(cle, [m.upper() for m in meds], scorer=fuzz.token_set_ratio)
+            choices = [m.upper() for m in meds]
+            match, score, _ = process.extractOne(cle, choices, scorer=fuzz.token_set_ratio)
             if score >= 85:
                 self.cache[cle] = "MEDICAMENTS"
                 return "MEDICAMENTS"
@@ -139,7 +140,7 @@ class PennyPetProcessor:
             elif ch == "}":
                 depth -= 1
                 if depth == 0:
-                    json_str = content[start:i+1]
+                    json_str = content[start : i + 1]
                     break
         json_str = pseudojson_to_json(json_str)
         data = json.loads(json_str)
@@ -172,7 +173,12 @@ class PennyPetProcessor:
         taux, plafond = r["taux_remboursement"] / 100, r["plafond_annuel"]
         brut = montant * taux
         final = min(brut, plafond)
-        return {"montant_ht": montant, "taux": taux * 100, "remb_final": final, "reste": montant - final}
+        return {
+            "montant_ht": montant,
+            "taux": taux * 100,
+            "remb_final": final,
+            "reste": montant - final
+        }
 
     def process_facture_pennypet(
         self, file_bytes: bytes, formule_client: str, llm_provider: str = "qwen"
