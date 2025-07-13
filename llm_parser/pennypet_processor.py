@@ -32,7 +32,7 @@ class NormaliseurAMV:
         # Mots-clés pharmaceutiques – variantes singulier/pluriel/abréviations
         self.termes_medicaments_semantiques = [
             # Formes orales
-            "comprimé", "comprime", "comprimés", "comprimee", "comp", "comp.",
+            "comprimé", "comprime", "comprimés", "comprimee", "comprimes", "comp", "comp.",
             "cps", "pilule", "pilules", "dragée", "dragee", "dragées", "dragees",
             "cachet", "cachets", "gélule", "gelule", "gélules", "gelules",
             "tablette", "tablettes", "capsule", "capsules",
