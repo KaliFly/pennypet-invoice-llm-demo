@@ -1,0 +1,46 @@
+{
+  "formes_orales": [
+    "comprimé", "comprime", "comprimés", "comprimee", "comprimes", "comprimess",
+    "comp", "comp.", "cp", "cps", "cp.", "cps.", "cpr", "cpr.", "gélule", "gelule", "gélules", "gelules",
+    "gél.", "gel.", "gelcap", "gelcaps", "pilule", "pilules", "pil.", "pil.", "dragée", "dragee", "dragées", "dragees",
+    "drg", "drg.", "cachet", "cachets", "tablette", "tablettes", "tbl", "tbl.", "capsule", "capsules", "cap", "cap."
+  ],
+  "unites_dosage": [
+    "mg", "mg.", "g", "g.", "gr", "gr.", "µg", "mcg", "mcg.", "μg", "ml", "ml.", "l", "l.", "iu", "iu.", "ui", "ui.",
+    "mg/ml", "mg.\/ml", "mcg/ml", "mcg.\/ml", "g/l", "g.\/l", "unité", "unité(s)", "un.", "unit", "unit.", "u", "u.",
+    "dose", "doses", "dose(s)", "d.", "d.", "amp", "amp.", "fl", "fl.", "ampoule", "ampoules"
+  ],
+  "liquides_suspensions": [
+    "sirop", "sirops", "sir.", "sir.", "goutte", "gouttes", "gt", "gtt", "gtt.", "suspension", "suspensions", "susp", "susp.",
+    "solution", "solutions", "sol", "sol.", "élixir", "elixir", "elixirs", "elix.", "collyre", "collyres", "coll.", "coll."
+  ],
+  "injectables": [
+    "injection", "injections", "inj", "inj.", "injectable", "injectables", "seringue", "seringues", "ser.", "ser.",
+    "perf", "perfusion", "perfusions", "perf.", "iv", "i.v.", "im", "i.m.", "sc", "s.c.", "voie intraveineuse", "voie intramusculaire", "voie sous-cutanée"
+  ],
+  "topiques": [
+    "crème", "creme", "crèmes", "cremes", "cr.", "cr.", "pommade", "pommades", "pom.", "pom.",
+    "lotion", "lotions", "lot.", "lot.", "gel", "gels", "gel.", "spray", "sprays", "spr.", "spr.",
+    "patch", "patchs", "transdermique", "transdermal", "ointment", "oint.", "oint."
+  ],
+  "suppositoires_inserts": [
+    "suppositoire", "suppositoires", "supp", "supp.", "insert", "inserts", "ins.", "ins.", "pessaire", "pessaires", "pes.", "pes."
+  ],
+  "inhalation": [
+    "inhalant", "inhalants", "inh.", "inh", "aérosol", "aerosol", "aérosols", "aerosols", "aér.", "aér.",
+    "nébuliseur", "nebuliseur", "nébuliseurs", "nebuliseurs", "néb.", "néb.", "spray nasal", "inhalateur", "inhalateurs", "inhal.", "inhal."
+  ],
+  "solides_speciaux": [
+    "sachet", "sachets", "sach.", "sach.", "granule", "granules", "gran.", "gran.", "poudre", "poudres", "pdr", "pdr."
+  ],
+  "autres_abreviations": [
+    "tbl", "tbl.", "cap", "cap.", "inj", "inj.", "soln", "soln.", "susp", "susp.", "drg", "drg.", "un.", "comp.", "mg/ml", "mcg/ml", "g/l", "amp", "amp.", "fl", "fl."
+  ],
+  "formes_veterinaires": [
+    "pipette", "pipettes", "pip.", "pip.", "spot-on", "spot on", "pâte", "pate", "pâtes", "pates", "pat.", "pat."
+  ],
+  "dispositifs": [
+    "bande", "bandes", "bandelettes", "pansement", "pansements", "seringue orale", "seringues orales",
+    "applicateur", "applicateurs", "flacon", "flacons", "fl.", "fl.", "ampoule", "ampoules", "amp.", "amp."
+  ]
+}

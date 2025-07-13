@@ -34,6 +34,9 @@ class PennyPetConfig:
         self.mapping_amv = self._load_json("mapping_amv_pennypet.json")
         self.formules = self._load_json("formules_pennypet.json")
 
+        # 5. Chargement du glossaire pharmaceutique ultra-exhaustif
+        self.glossaire_pharmaceutique = self._load_glossaire_pharmaceutique("glossaire_pharmaceutique.json")
+
     def _load_json(self, filename: str) -> dict:
         path = self.config_dir / filename
         if not path.exists():
@@ -47,7 +50,6 @@ class PennyPetConfig:
             raise FileNotFoundError(f"Le fichier JSON {path} est manquant.")
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
-        # Si le JSON est un dict, on prend ses valeurs
         if isinstance(data, dict):
             data = list(data.values())
         if not data:
@@ -65,16 +67,13 @@ class PennyPetConfig:
 
     def _load_csv_regex(self, relpath: str, **kwargs) -> pd.DataFrame:
         df = self._load_csv(relpath, **kwargs)
-        # Nettoyage des noms de colonnes
         df.columns = [c.strip() for c in df.columns]
-        # Renommage des colonnes métiers
         rename_map = {
             "Terme/Libellé": "field_label",
             "Regex OCR": "regex_pattern",
             "Variantes/Synonymes": "variantes"
         }
         df.rename(columns={old: new for old, new in rename_map.items() if old in df.columns}, inplace=True)
-        # Compilation sécurisée des patterns
         if "regex_pattern" in df.columns:
             def compile_or_none(pat: str):
                 try:
@@ -86,7 +85,6 @@ class PennyPetConfig:
 
     def _load_regles(self, relpath: str, **kwargs) -> pd.DataFrame:
         df = self._load_csv(relpath, **kwargs)
-        # Colonnes à splitter en listes
         for col in ["exclusions", "actes_couverts", "conditions_speciales"]:
             if col in df.columns:
                 df[col] = (
@@ -94,8 +92,24 @@ class PennyPetConfig:
                     .fillna("")
                     .apply(lambda s: [v.strip() for v in s.split("|") if v.strip()] if s else [])
                 )
-        # Conversion des colonnes numériques
         for col in ["taux_remboursement", "plafond_annuel"]:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
         return df
+
+    def _load_glossaire_pharmaceutique(self, filename: str) -> set:
+        """
+        Charge le glossaire pharmaceutique ultra-exhaustif depuis un JSON,
+        fusionne toutes les valeurs en un set de termes uniques.
+        """
+        path = self.config_dir / filename
+        if not path.exists():
+            raise FileNotFoundError(f"Le fichier de glossaire {path} est manquant.")
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        # Fusionne toutes les valeurs (listes) en un set unique
+        termes = set()
+        for v in data.values():
+            if isinstance(v, list):
+                termes.update([t.strip().lower() for t in v if t.strip()])
+        return termes
