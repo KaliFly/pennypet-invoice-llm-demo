@@ -127,7 +127,7 @@ class NormaliseurAMV:
 
         # 2. Fallback sémantique (regex mot entier)
         for t in self.termes_medicaments_semantiques:
-            if re.search(rf"\b{re.escape(t)}\b", libelle_lower):
+            if re.search(rf"\b{re.escape(t)}s?\b", libelle_lower):
                 self.cache[libelle_clean] = "MEDICAMENTS"
                 return "MEDICAMENTS"
 
