@@ -12,7 +12,6 @@ except ImportError:
     print("Warning: rapidfuzz not available. Fuzzy matching will be disabled.")
 
 def pseudojson_to_json(text: str) -> str:
-    # Correction minimale pour JSON mal formé
     text = re.sub(r'([{,]\s*)([a-zA-Z0-9_]+)\s*:', r'\1"\2":', text)
     text = text.replace("'", '"')
     text = re.sub(r',\s*([}\]])', r'\1', text)
@@ -21,13 +20,13 @@ def pseudojson_to_json(text: str) -> str:
 class NormaliseurAMV:
     """
     Normaliseur des actes et médicaments :
-    1. Exact / regex pattern
-    2. Fallback sémantique via glossaire
-    3. Fuzzy matching (en dernier)
+      1. Exact / regex patterns
+      2. Fallback sémantique (glossaires actes & médicaments)
+      3. Fuzzy matching (en dernier)
     """
     def __init__(self, config: PennyPetConfig):
         self.config = config
-        # Glossaire actes : mots-clés en minuscules
+        # Glossaire actes
         self.termes_actes = set(config.actes_df["field_label"].str.lower().tolist())
         self.actes_df = config.actes_df.dropna(subset=["pattern"])
         # Glossaire médicaments
@@ -37,64 +36,70 @@ class NormaliseurAMV:
         self.cache: Dict[str, Optional[str]] = {}
 
     def normalise_acte(self, libelle_brut: str) -> Optional[str]:
-        libelle = libelle_brut.upper().strip()
-        lib_min = libelle_brut.lower().strip()
+        libelle = libelle_brut.strip()
         if not libelle:
             return None
-        if libelle in self.cache:
-            return self.cache[libelle]
-        # 1. Regex patterns
+        cle = libelle.upper()
+        low = libelle.lower()
+        if cle in self.cache:
+            return self.cache[cle]
+        # 1. Regex patterns CSV
         for _, row in self.actes_df.iterrows():
-            if row["pattern"].search(libelle):
+            if row["pattern"].search(cle):
                 return row["code_acte"]
-        # 2. Fallback sémantique glossaire actes
+        # 2. Fallback sémantique actes
         for t in self.termes_actes:
-            if re.search(rf"(?<!\w){re.escape(t)}(?!\w)", lib_min):
+            if re.search(rf"(?<!\w){re.escape(t)}(?!\w)", low):
                 code = t.upper()
-                self.cache[libelle] = code
+                self.cache[cle] = code
                 return code
         # 3. Fuzzy matching
         if RAPIDFUZZ_AVAILABLE:
             codes = self.actes_df["code_acte"].dropna().tolist()
-            match, score, _ = process.extractOne(libelle, codes, scorer=fuzz.token_sort_ratio)
+            match, score, _ = process.extractOne(cle, codes, scorer=fuzz.token_sort_ratio)
             if score >= 80:
-                self.cache[libelle] = match
+                self.cache[cle] = match
                 return match
-        self.cache[libelle] = None
+        self.cache[cle] = None
         return None
 
     def normalise_medicament(self, libelle_brut: str) -> Optional[str]:
-        libelle = libelle_brut.upper().strip()
-        lib_min = libelle_brut.lower().strip()
+        libelle = libelle_brut.strip()
         if not libelle:
             return None
-        if libelle in self.cache:
-            return self.cache[libelle]
-        # 1. Exact dans base médicaments
-        meds = [m.lower() for m in self.medicaments_df["medicament"].dropna()]
-        if lib_min in meds:
-            self.cache[libelle] = "MEDICAMENTS"
-            return "MEDICAMENTS"
-        # 2. Fallback sémantique glossaire médicaments
+        cle = libelle.upper()
+        low = libelle.lower()
+        if cle in self.cache:
+            return self.cache[cle]
+        # 1. Fallback sémantique médicaments (glossaire pharma)
         for t in self.termes_medicaments:
-            if re.search(rf"(?<!\w){re.escape(t)}s?(?!\w)", lib_min):
-                self.cache[libelle] = "MEDICAMENTS"
+            # mot entier, tolère pluriel, chiffres collés ou non
+            if re.search(rf"(\d+\s*)?(?<!\w){re.escape(t)}s?(?!\w)", low):
+                self.cache[cle] = "MEDICAMENTS"
                 return "MEDICAMENTS"
+        # 2. Recherche exacte dans base
+        meds = [m.lower() for m in self.medicaments_df["medicament"].dropna()]
+        if low in meds:
+            self.cache[cle] = "MEDICAMENTS"
+            return "MEDICAMENTS"
         # 3. Fuzzy matching
         if RAPIDFUZZ_AVAILABLE:
-            medicaments = meds
-            match, score, _ = process.extractOne(libelle, medicaments, scorer=fuzz.token_set_ratio)
+            match, score, _ = process.extractOne(
+                cle,
+                [m.upper() for m in meds],
+                scorer=fuzz.token_set_ratio
+            )
             if score >= 85:
-                self.cache[libelle] = "MEDICAMENTS"
+                self.cache[cle] = "MEDICAMENTS"
                 return "MEDICAMENTS"
-        self.cache[libelle] = None
+        self.cache[cle] = None
         return None
 
     def normalise(self, libelle_brut: str) -> Optional[str]:
         return (
             self.normalise_acte(libelle_brut)
             or self.normalise_medicament(libelle_brut)
-            or libelle_brut.upper().strip()
+            or libelle_brut.strip().upper()
         )
 
     def get_mapping_stats(self) -> Dict[str, int]:
@@ -107,7 +112,7 @@ class NormaliseurAMV:
 
 class PennyPetProcessor:
     """
-    Pipeline d'extraction, normalisation et calcul de remboursement PennyPet.
+    Pipeline extraction LLM, normalisation, calcul remboursement PennyPet.
     """
     def __init__(
         self,
@@ -125,21 +130,20 @@ class PennyPetProcessor:
         self, image_bytes: bytes, formule: str, llm_provider: str = "qwen"
     ) -> Tuple[Dict[str, Any], str]:
         client = self.client_qwen if llm_provider.lower() == "qwen" else self.client_mistral
-        response = client.analyze_invoice_image(image_bytes, formule)
-        content = response.choices[0].message.content
+        resp = client.analyze_invoice_image(image_bytes, formule)
+        content = resp.choices[0].message.content
         start = content.find("{")
         if start < 0:
             raise ValueError("JSON non trouvé")
-        # extraire bloc JSON
         depth = 0
         for i, ch in enumerate(content[start:], start):
-            if ch == "{": depth += 1
+            if ch == "{":
+                depth += 1
             elif ch == "}":
                 depth -= 1
                 if depth == 0:
                     json_str = content[start:i+1]
                     break
-        # parsing robuste
         json_str = pseudojson_to_json(json_str)
         try:
             data = json.loads(json_str)
@@ -171,25 +175,24 @@ class PennyPetProcessor:
         reg = df[mask]
         if reg.empty:
             return {"erreur": f"{formule}/{code_acte}", "reste": montant}
-        reg0 = reg.iloc[0]
-        taux, plafond = reg0["taux_remboursement"]/100, reg0["plafond_annuel"]
-        brut = montant*taux
+        r = reg.iloc[0]
+        taux, plafond = r["taux_remboursement"]/100, r["plafond_annuel"]
+        brut = montant * taux
         final = min(brut, plafond)
         return {
             "montant_ht": montant,
             "taux": taux*100,
             "remb_final": final,
-            "reste": montant-final
+            "reste": montant - final
         }
 
     def process_facture_pennypet(
         self, file_bytes: bytes, formule_client: str, llm_provider: str="qwen"
     ) -> Dict[str, Any]:
-        data, raw = self.extract_lignes_from_image(file_bytes, formule_client, llm_provider)
-        lignes = data["lignes"]
+        data, _ = self.extract_lignes_from_image(file_bytes, formule_client, llm_provider)
         resultats = []
         accidents = {"accident","urgent","urgence","fract","trauma"}
-        for l in lignes:
+        for l in data["lignes"]:
             lib = (l.get("code_acte") or l.get("description","")).strip()
             code = self.normaliseur.normalise(lib)
             montant = float(l.get("montant_ht",0) or 0)
