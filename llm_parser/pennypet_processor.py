@@ -15,7 +15,7 @@ except ImportError:
 class NormaliseurAMV:
     """
     Normaliseur pour mapper les libellés bruts LLM vers codes d'actes/médicaments standardisés,
-    avec enrichissement sémantique pour toutes les formes pharmaceutiques.
+    avec enrichissement sémantique ultra-robuste pour toutes les formes pharmaceutiques.
     """
     def __init__(self, config: PennyPetConfig):
         self.config = config
@@ -24,7 +24,7 @@ class NormaliseurAMV:
         self.mapping_amv = config.mapping_amv
         self.cache = {}
 
-        # Liste exhaustive de mots-clés pharmaceutiques
+        # Liste exhaustive de mots-clés pharmaceutiques (singulier, pluriel, abréviations, avec/sans point)
         self.termes_medicaments_semantiques = [
             # Formes orales
             "comprimé", "comprime", "comprimés", "comprimee", "comp", "comp.", "cps", "pilule", "pilules",
@@ -128,7 +128,7 @@ class NormaliseurAMV:
                 return "MEDICAMENTS"
 
         # Bonus : détection accolée à un chiffre (ex : 10mg, 5ml, 2comp)
-        if re.search(r"\d+\s?(mg|ml|comp|comp\.|cps|tbl|g|ui|iu)\b", libelle_lower):
+        if re.search(r"\d+\s?(mg|mg\.|ml|ml\.|comp|comp\.|cps|tbl|g|ui|iu)\b", libelle_lower):
             self.cache[libelle_clean] = "MEDICAMENTS"
             return "MEDICAMENTS"
 
