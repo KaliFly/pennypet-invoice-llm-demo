@@ -11,6 +11,21 @@ except ImportError:
     RAPIDFUZZ_AVAILABLE = False
     print("Warning: rapidfuzz not available. Fuzzy matching will be disabled.")
 
+def pseudojson_to_json(text: str) -> str:
+    """
+    Corrige les propriétés non-quotées, guillemets simples, et retire les commentaires.
+    """
+    # Propriétés non-quotées
+    text = re.sub(r'([{,]\s*)([a-zA-Z0-9_]+)\s*:', r'\1"\2":', text)
+    # Guillemets simples → doubles
+    text = text.replace("'", '"')
+    # Supprime les commentaires (// ou #)
+    text = re.sub(r'//.*?\n|#.*?\n', '', text)
+    # Supprime les virgules finales avant une accolade fermante
+    text = re.sub(r',\s*}', '}', text)
+    text = re.sub(r',\s*]', ']', text)
+    return text
+
 class NormaliseurAMV:
     """
     Normaliseur pour mapping LLM -> codes actes/médicaments standardisés,
@@ -22,7 +37,7 @@ class NormaliseurAMV:
         self.medicaments_df = config.medicaments_df
         self.mapping_amv = config.mapping_amv
         self.cache: Dict[str, Optional[str]] = {}
-        # Intègre le glossaire pharma JSON (set de termes en minuscules)
+        # Glossaire pharma (set de termes en minuscules)
         self.termes_medicaments_semantiques = config.glossaire_pharmaceutique
 
     def normalise_acte(self, libelle_brut: str) -> Optional[str]:
@@ -204,7 +219,12 @@ class PennyPetProcessor:
                     end = i
                     break
         json_str = content[start : end + 1]
-        data = json.loads(json_str)
+        json_str = pseudojson_to_json(json_str)
+        try:
+            data = json.loads(json_str)
+        except Exception as e:
+            print("Contenu JSON problématique :", json_str)
+            raise ValueError(f"Erreur lors du parsing JSON : {e}")
         if "lignes" not in data:
             raise ValueError("Le LLM n'a pas extrait de lignes exploitables.")
         return data, content
