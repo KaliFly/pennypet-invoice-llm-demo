@@ -33,7 +33,6 @@ class NormaliseurAMV:
         self.medicaments_df = config.medicaments_df
         self.mapping_amv = config.mapping_amv
         self.cache: Dict[str, Optional[str]] = {}
-        # Glossaire pharma (set de termes en minuscules)
         self.termes_medicaments_semantiques = config.glossaire_pharmaceutique
 
     def normalise_acte(self, libelle_brut: str) -> Optional[str]:
@@ -64,28 +63,34 @@ class NormaliseurAMV:
         libelle_lower = libelle_brut.lower().strip()
         if libelle_clean in self.cache:
             return self.cache[libelle_clean]
-        # 1. Fuzzy matching (si RapidFuzz dispo)
-        if RAPIDFUZZ_AVAILABLE:
-            medicaments = []
-            for _, row in self.medicaments_df.iterrows():
-                if "medicament" in row:
-                    medicaments.append(row["medicament"])
-                if isinstance(row.get("synonymes_ocr"), list):
-                    medicaments.extend(row["synonymes_ocr"])
-            if medicaments:
-                match, score, _ = process.extractOne(
-                    libelle_clean, medicaments, scorer=fuzz.token_set_ratio
-                )
-                if score >= 85:
-                    code_amv = self.mapping_amv.get(match)
-                    self.cache[libelle_clean] = code_amv or "MEDICAMENTS"
-                    return code_amv or "MEDICAMENTS"
+        # 1. Recherche exacte dans la base de médicaments normalisés
+        medicament_list = [str(x).lower() for x in self.medicaments_df["medicament"].dropna().tolist()]
+        if libelle_lower in medicament_list:
+            code_amv = self.mapping_amv.get(libelle_clean)
+            self.cache[libelle_clean] = code_amv or "MEDICAMENTS"
+            return code_amv or "MEDICAMENTS"
         # 2. Fallback sémantique via glossaire pharma (mot entier, tolère s final et chiffre(s) devant)
         for t in self.termes_medicaments_semantiques:
             if re.search(rf"(\d+\s*)?\b{re.escape(t)}s?\b", libelle_lower):
                 self.cache[libelle_clean] = "MEDICAMENTS"
                 return "MEDICAMENTS"
-        # 3. Cas « 10mg / 5ml / 2comp » accolé
+        # 3. Fuzzy matching (si RapidFuzz dispo)
+        if RAPIDFUZZ_AVAILABLE:
+            medicaments = []
+            for _, row in self.medicaments_df.iterrows():
+                if "medicament" in row:
+                    medicaments.append(str(row["medicament"]))
+                if isinstance(row.get("synonymes_ocr"), list):
+                    medicaments.extend([str(s) for s in row["synonymes_ocr"]])
+            if medicaments:
+                match, score, _ = process.extractOne(
+                    libelle_clean, medicaments, scorer=fuzz.token_set_ratio
+                )
+                if score >= 85:
+                    code_amv = self.mapping_amv.get(match.upper())
+                    self.cache[libelle_clean] = code_amv or "MEDICAMENTS"
+                    return code_amv or "MEDICAMENTS"
+        # 4. Cas « 10mg / 5ml / 2comp » accolé
         if re.search(r"\d+\s?(mg|mg\.|ml|ml\.|comp|comp\.|cps|tbl|g|ui|iu)\b", libelle_lower):
             self.cache[libelle_clean] = "MEDICAMENTS"
             return "MEDICAMENTS"
