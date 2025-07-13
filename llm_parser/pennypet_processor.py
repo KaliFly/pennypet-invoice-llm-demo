@@ -69,7 +69,7 @@ class NormaliseurAMV:
                     code_amv = self.mapping_amv.get(match)
                     self.cache[libelle_clean] = code_amv or "MEDICAMENTS"
                     return code_amv or "MEDICAMENTS"
-        # 2. Fallback sémantique via glossaire pharma (mot entier)
+        # 2. Fallback sémantique via glossaire pharma (mot entier, tolère s final)
         for t in self.termes_medicaments_semantiques:
             if re.search(rf"\b{re.escape(t)}s?\b", libelle_lower):
                 self.cache[libelle_clean] = "MEDICAMENTS"
@@ -136,7 +136,6 @@ class PennyPetProcessor:
                 "plafond_formule": 0,
             }
         df = self.regles_pc_df.copy()
-        # Masque strict : code_acte doit être explicitement couvert (même si code_acte=ALL)
         mask = (
             (df["formule"] == formule)
             &
