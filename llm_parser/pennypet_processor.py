@@ -12,10 +12,6 @@ except ImportError:
     RAPIDFUZZ_AVAILABLE = False
     print("Warning: rapidfuzz not available. Fuzzy matching will be disabled.")
 
-
-# --------------------------------------------------------------------------- #
-#                           NORMALISEUR DES ACTES / MEDICAMENTS              #
-# --------------------------------------------------------------------------- #
 class NormaliseurAMV:
     """
     Normaliseur pour mapper les libellés bruts LLM vers codes d'actes/médicaments
@@ -32,7 +28,7 @@ class NormaliseurAMV:
         # Mots-clés pharmaceutiques – variantes singulier/pluriel/abréviations
         self.termes_medicaments_semantiques = [
             # Formes orales
-            "comprimé", "comprime", "comprimés", "comprimee", "comprimes","comprimess", "comp", "comp.", "cp"
+            "comprimé", "comprime", "comprimés", "comprimee", "comprimes", "comprimess", "comp", "comp.", "cp",
             "cps", "pilule", "pilules", "dragée", "dragee", "dragées", "dragees",
             "cachet", "cachets", "gélule", "gelule", "gélules", "gelules",
             "tablette", "tablettes", "capsule", "capsules",
@@ -65,24 +61,20 @@ class NormaliseurAMV:
             "mg/ml"
         ]
 
-    # ------------------ Normalisation d'actes ------------------ #
     def normalise_acte(self, libelle_brut: str) -> Optional[str]:
         if not libelle_brut:
             return None
 
         libelle_clean = libelle_brut.upper().strip()
 
-        # Cache
         if libelle_clean in self.cache:
             return self.cache[libelle_clean]
 
-        # 1. Pattern regex
         for _, row in self.actes_df.iterrows():
             if row["pattern"].search(libelle_clean):
                 self.cache[libelle_clean] = row["code_acte"]
                 return row["code_acte"]
 
-        # 2. Fuzzy matching
         if RAPIDFUZZ_AVAILABLE:
             codes_actes = self.actes_df["code_acte"].dropna().tolist()
             match, score, _ = process.extractOne(
@@ -95,7 +87,6 @@ class NormaliseurAMV:
         self.cache[libelle_clean] = None
         return None
 
-    # ------------------ Normalisation des médicaments ------------------ #
     def normalise_medicament(self, libelle_brut: str) -> Optional[str]:
         if not libelle_brut:
             return None
@@ -103,7 +94,6 @@ class NormaliseurAMV:
         libelle_clean = libelle_brut.upper().strip()
         libelle_lower = libelle_brut.lower().strip()
 
-        # Cache
         if libelle_clean in self.cache:
             return self.cache[libelle_clean]
 
@@ -125,7 +115,7 @@ class NormaliseurAMV:
                     self.cache[libelle_clean] = code_amv or "MEDICAMENTS"
                     return code_amv or "MEDICAMENTS"
 
-        # 2. Fallback sémantique (regex mot entier)
+        # 2. Fallback sémantique (regex mot entier, tolère le s final)
         for t in self.termes_medicaments_semantiques:
             if re.search(rf"\b{re.escape(t)}s?\b", libelle_lower):
                 self.cache[libelle_clean] = "MEDICAMENTS"
@@ -140,7 +130,6 @@ class NormaliseurAMV:
         self.cache[libelle_clean] = None
         return None
 
-    # ------------------ Méthode principale ------------------ #
     def normalise(self, libelle_brut: str) -> Optional[str]:
         if not libelle_brut:
             return None
@@ -159,9 +148,6 @@ class NormaliseurAMV:
         }
 
 
-# --------------------------------------------------------------------------- #
-#                              PROCESSOR PRINCIPAL                           #
-# --------------------------------------------------------------------------- #
 class PennyPetProcessor:
     """
     Pipeline complet : extraction LLM, normalisation, calcul remboursement.
@@ -179,7 +165,6 @@ class PennyPetProcessor:
         self.regles_pc_df = self.config.regles_pc_df
         self.normaliseur = NormaliseurAMV(self.config)
 
-    # ------------------ Calcul du remboursement ------------------ #
     def calculer_remboursement_pennypet(
         self,
         montant: float,
@@ -187,7 +172,6 @@ class PennyPetProcessor:
         formule: str,
         acte_est_accident: bool,
     ) -> Dict[str, Any]:
-        """Applique les règles CSV en tenant compte du type de couverture."""
         if not formule or not code_acte:
             return {
                 "erreur": "Formule ou code acte manquant",
@@ -204,10 +188,8 @@ class PennyPetProcessor:
         df = self.regles_pc_df.copy()
 
         mask = (
-            # 1. Formule
             (df["formule"] == formule)
             &
-            # 2. Code d'acte précis OU ligne ALL + acte présent dans actes_couverts
             (
                 df["code_acte"].eq(code_acte)
                 |
@@ -221,7 +203,6 @@ class PennyPetProcessor:
                 )
             )
             &
-            # 3. Type de couverture
             (
                 (df["type_couverture"] == "ACCIDENT_MALADIE")
                 |
@@ -265,7 +246,6 @@ class PennyPetProcessor:
             "formule_utilisee": formule,
         }
 
-    # ------------------ Extraction depuis l'image ------------------ #
     def extract_lignes_from_image(
         self, image_bytes: bytes, formule: str, llm_provider: str = "qwen"
     ) -> Tuple[Dict[str, Any], str]:
@@ -273,7 +253,6 @@ class PennyPetProcessor:
         response = client.analyze_invoice_image(image_bytes, formule)
         content = response.choices[0].message.content
 
-        # Extraction robuste du JSON
         start = content.find("{")
         if start == -1:
             raise ValueError("JSON non trouvé dans la réponse LLM.")
@@ -292,7 +271,6 @@ class PennyPetProcessor:
             raise ValueError("Le LLM n'a pas extrait de lignes exploitables.")
         return data, content
 
-    # ------------------ Pipeline complet ------------------ #
     def process_facture_pennypet(
         self,
         file_bytes: bytes,
@@ -344,7 +322,6 @@ class PennyPetProcessor:
             "llm_raw": raw_content,
             "mapping_stats": self.normaliseur.get_mapping_stats(),
         }
-
 
 # Instance globale pour un usage direct
 pennypet_processor = PennyPetProcessor()
