@@ -15,13 +15,9 @@ def pseudojson_to_json(text: str) -> str:
     """
     Corrige les propriétés non-quotées, guillemets simples, et retire les commentaires.
     """
-    # Propriétés non-quotées
     text = re.sub(r'([{,]\s*)([a-zA-Z0-9_]+)\s*:', r'\1"\2":', text)
-    # Guillemets simples → doubles
     text = text.replace("'", '"')
-    # Supprime les commentaires (// ou #)
     text = re.sub(r'//.*?\n|#.*?\n', '', text)
-    # Supprime les virgules finales avant une accolade fermante
     text = re.sub(r',\s*}', '}', text)
     text = re.sub(r',\s*]', ']', text)
     return text
@@ -84,9 +80,9 @@ class NormaliseurAMV:
                     code_amv = self.mapping_amv.get(match)
                     self.cache[libelle_clean] = code_amv or "MEDICAMENTS"
                     return code_amv or "MEDICAMENTS"
-        # 2. Fallback sémantique via glossaire pharma (mot entier, tolère s final)
+        # 2. Fallback sémantique via glossaire pharma (mot entier, tolère s final et chiffre(s) devant)
         for t in self.termes_medicaments_semantiques:
-            if re.search(rf"\b{re.escape(t)}s?\b", libelle_lower):
+            if re.search(rf"(\d+\s*)?\b{re.escape(t)}s?\b", libelle_lower):
                 self.cache[libelle_clean] = "MEDICAMENTS"
                 return "MEDICAMENTS"
         # 3. Cas « 10mg / 5ml / 2comp » accolé
