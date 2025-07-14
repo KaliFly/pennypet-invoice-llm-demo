@@ -22,3 +22,14 @@ click>=7.0,<9.0
 jsonschema>=4.0
 # Fuzzy matching pour normalisation ← AJOUT
 rapidfuzz>=3.0,<4.0
+
+# Traitement PDF et images - VERSIONS AJUSTÉES
+PyMuPDF>=1.23.0,<1.25.0
+pdf2image>=3.1.0,<4.0.0
+Pillow>=9.0.0,<11.0.0
+
+# Dépendances additionnelles pour la conversion PDF
+unicodedata2>=15.0.0  # Pour la normalisation des accents
+
+# Visualisations et graphiques
+plotly>=5.0.0,<6.0.0
