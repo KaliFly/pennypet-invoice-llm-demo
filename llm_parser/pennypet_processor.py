@@ -28,53 +28,72 @@ except ImportError:
 
 def pseudojson_to_json_ameliore(text: str) -> str:
     """
-    Correction robuste pour JSON mal formé avec gestion d'erreurs étendue.
+    Rend un texte pseudo-JSON parse-able par json.loads().
+    → 1. Nettoyage standard
+    → 2. Détection d'une virgule manquante juste avant un guillemet ouvrant
+    → 3. Validation finale : on boucle tant que json.loads échoue et qu'on
+        réussit à corriger un nouveau défaut.
     """
-    try:
-        # Nettoyage initial
-        text = text.strip()
-        
-        # 1. Correction des propriétés non quotées
-        text = re.sub(r'([{,]\s*)([a-zA-Z0-9_]+)\s*:', r'\1"\2":', text)
-        
-        # 2. Remplacement des guillemets simples par doubles
-        text = text.replace("'", '"')
-        
-        # 3. Suppression des virgules avant fermantes
-        text = re.sub(r',\s*([}\]])', r'\1', text)
-        
-        # 4. Correction des virgules manquantes entre objets
-        text = re.sub(r'}\s*{', '},{', text)
-        text = re.sub(r']\s*\[', '],[', text)
-        
-        # 5. Correction des virgules manquantes après valeurs
-        text = re.sub(r'(".*?")\s*\n\s*(".*?")', r'\1,\n\2', text)
-        text = re.sub(r'(\d+\.?\d*)\s*\n\s*(".*?")', r'\1,\n\2', text)
-        
-        # 6. Suppression des doubles virgules
-        text = re.sub(r',,+', ',', text)
-        
-        # 7. Correction des deux points multiples
-        text = re.sub(r'::+', ':', text)
-        
-        # 8. Suppression des caractères non ASCII problématiques
-        text = re.sub(r'[^\x20-\x7E\n]', '', text)
-        
-        # 9. Correction des nombres mal formatés
-        text = re.sub(r'(\d+)\s*\.\s*(\d+)', r'\1.\2', text)
-        
-        return text
-        
-    except Exception as e:
-        logger.error(f"Erreur nettoyage JSON: {e}")
-        return text
+    if not text:
+        return "{}"
+
+    # ---------- 1. Nettoyage standard ----------
+    def _clean_once(t: str) -> str:
+        t = t.strip()
+
+        # Propriétés non quotées
+        t = re.sub(r'([{,]\s*)([A-Za-z0-9_]+)\s*:', r'\1"\2":', t)
+        # Guillemets simples
+        t = t.replace("'", '"')
+        # Doubles virgules
+        t = re.sub(r',\s*,', ',', t)
+        # Virgule juste avant } ou ]
+        t = re.sub(r',\s*([}\]])', r'\1', t)
+        # Collage d'objets ou de listes
+        t = re.sub(r'}\s*{', '},{', t)
+        t = re.sub(r']\s*\[', '],[', t)
+        # Nombres mal formés « 1 . 23 »
+        t = re.sub(r'(\d+)\s*\.\s*(\d+)', r'\1.\2', t)
+        # Caractères non imprimables
+        t = re.sub(r'[^\x20-\x7E\n]', '', t)
+        return t
+
+    text = _clean_once(text)
+
+    # ---------- 2. Virgule manquante avant un guillemet ----------
+    # Cas le plus fréquent causant l'erreur ligne 2 col 1093 :
+    # … "key":"value"  "next_key":...
+    missing_comma = re.compile(r'(":[^,{}\[\]]+?"\s+")')
+    text = missing_comma.sub(lambda m: m.group(0).replace('" ', '", '), text)
+
+    # ---------- 3. Boucle de validation / correction ----------
+    # On tente json.loads ; si ça rate on insère la virgule manquante
+    # située juste avant la position de l'exception.
+    max_iter, done = 10, False
+    while max_iter and not done:
+        try:
+            json.loads(text)          # ✅ prêt à parser
+            done = True
+        except json.JSONDecodeError as e:
+            pos = e.pos
+            # Recherche du prochain guillemet ouvrant ; si la
+            # position précédente n'est pas une virgule ou { ou [,
+            # on injecte la virgule salvatrice.
+            if pos < len(text) and pos > 0 and text[pos-1] not in '{[,"':
+                text = text[:pos] + ',' + text[pos:]
+                logger.debug(f"Virgule ajoutée à la position {pos}")
+            else:
+                # Plus de correctif réalisable → on abandonne la boucle
+                logger.warning(f"Impossible de corriger JSON à la position {pos}")
+                break
+        max_iter -= 1
+
+    return text
 
 def extraire_json_robuste(content: str) -> dict:
     """
-    Extraction JSON ultra-robuste avec plusieurs méthodes de fallback.
+    Extraction JSON avec micro-validateur et fallback robuste.
     """
-    logger.info(f"Début extraction JSON - Longueur contenu: {len(content)}")
-    
     # Méthode 1: Extraction standard avec nettoyage amélioré
     try:
         start = content.find("{")
@@ -95,30 +114,27 @@ def extraire_json_robuste(content: str) -> dict:
         if not json_str:
             raise ValueError("JSON malformé")
         
-        logger.info(f"JSON extrait - Longueur: {len(json_str)}")
-        
-        # Nettoyage et tentative de parsing
+        # Nettoyage avec la fonction améliorée
         json_clean = pseudojson_to_json_ameliore(json_str)
         data = json.loads(json_clean)
+        
+        # Micro-validateur : vérifier que lignes est bien une liste
+        if not isinstance(data.get("lignes"), list):
+            raise json.JSONDecodeError("Champ 'lignes' non-liste", json_clean, 0)
         
         logger.info("JSON parsé avec succès (méthode 1)")
         return data
         
     except json.JSONDecodeError as e:
         logger.warning(f"Parsing JSON échoué (méthode 1): {e}")
-        logger.warning(f"Position erreur: ligne {getattr(e, 'lineno', 'N/A')}, colonne {getattr(e, 'colno', 'N/A')}")
         
         # Méthode 2: Reconstruction manuelle à partir de patterns
         try:
-            logger.info("Tentative de reconstruction manuelle du JSON")
-            data = reconstruire_json_manuellement(content)
-            logger.info("JSON reconstruit manuellement avec succès")
-            return data
+            return reconstruire_json_manuellement(content)
         except Exception as e2:
-            logger.error(f"Reconstruction manuelle échouée: {e2}")
+            logger.error(f"Toutes les méthodes de parsing ont échoué: {e2}")
             
             # Méthode 3: Fallback structure minimale
-            logger.warning("Utilisation de la structure de fallback")
             return {
                 "lignes": [{"code_acte": "ERREUR_JSON", "description": "Erreur parsing JSON", "montant_ht": 0.0}],
                 "montant_total": 0.0,
@@ -140,8 +156,7 @@ def reconstruire_json_manuellement(content: str) -> dict:
         lignes_patterns = [
             r'"code_acte"\s*:\s*"([^"]*)".*?"description"\s*:\s*"([^"]*)".*?"montant_ht"\s*:\s*([0-9.]+)',
             r'"description"\s*:\s*"([^"]*)".*?"montant_ht"\s*:\s*([0-9.]+)',
-            r'acte.*?:\s*"([^"]*)".*?montant.*?:\s*([0-9.]+)',
-            r'"([^"]*)".*?(\d+\.?\d*)\s*€'
+            r'acte.*?:\s*"([^"]*)".*?montant.*?:\s*([0-9.]+)'
         ]
         
         for pattern in lignes_patterns:
@@ -162,40 +177,23 @@ def reconstruire_json_manuellement(content: str) -> dict:
                         })
                 break
         
-        # Si aucune ligne trouvée, essayer une approche plus simple
-        if not result["lignes"]:
-            montants = re.findall(r'(\d+\.?\d*)\s*€', content)
-            descriptions = re.findall(r'"([^"]{5,})"', content)
-            
-            for i, montant in enumerate(montants[:5]):  # Limiter à 5 lignes max
-                desc = descriptions[i] if i < len(descriptions) else f"Ligne {i+1}"
-                result["lignes"].append({
-                    "code_acte": desc,
-                    "description": desc,
-                    "montant_ht": float(montant)
-                })
+        # Extraction du montant total
+        montant_patterns = [
+            r'"montant_total"\s*:\s*([0-9.]+)',
+            r'total.*?:\s*([0-9.]+)'
+        ]
         
-        # Calcul du montant total
-        if result["lignes"]:
-            result["montant_total"] = sum(ligne["montant_ht"] for ligne in result["lignes"])
+        for pattern in montant_patterns:
+            match = re.search(pattern, content, re.IGNORECASE)
+            if match:
+                result["montant_total"] = float(match.group(1))
+                break
         
-        # Extraction des informations client avec patterns flexibles
+        # Extraction des informations client
         client_patterns = {
-            "nom_proprietaire": [
-                r'"nom_proprietaire"\s*:\s*"([^"]*)"',
-                r'proprietaire.*?:\s*"([^"]*)"',
-                r'nom.*?:\s*"([^"]*)"'
-            ],
-            "nom_animal": [
-                r'"nom_animal"\s*:\s*"([^"]*)"',
-                r'animal.*?:\s*"([^"]*)"',
-                r'pet.*?:\s*"([^"]*)"'
-            ],
-            "identification": [
-                r'"identification"\s*:\s*"([^"]*)"',
-                r'identification.*?:\s*"([^"]*)"',
-                r'id.*?:\s*"([^"]*)"'
-            ]
+            "nom_proprietaire": [r'"nom_proprietaire"\s*:\s*"([^"]*)"', r'proprietaire.*?:\s*"([^"]*)"'],
+            "nom_animal": [r'"nom_animal"\s*:\s*"([^"]*)"', r'animal.*?:\s*"([^"]*)"'],
+            "identification": [r'"identification"\s*:\s*"([^"]*)"', r'identification.*?:\s*"([^"]*)"']
         }
         
         for key, patterns in client_patterns.items():
@@ -219,121 +217,139 @@ def reconstruire_json_manuellement(content: str) -> dict:
 def normaliser_accents(texte: str) -> str:
     """
     Normalise les accents et caractères spéciaux.
+    Utilise unicodedata pour une normalisation robuste.
     """
     if not texte:
         return ""
     
+    # Normalisation NFD (décomposition) puis suppression des accents
     texte_nfd = unicodedata.normalize('NFD', texte)
     texte_sans_accents = ''.join(c for c in texte_nfd if unicodedata.category(c) != 'Mn')
+    
+    # Conversion en minuscules et suppression des caractères spéciaux
     texte_clean = re.sub(r'[^\w\s]', ' ', texte_sans_accents.lower())
+    
+    # Normalisation des espaces
     return ' '.join(texte_clean.split())
 
 class NormaliseurAMVAmeliore:
     """
-    Normaliseur amélioré utilisant tous les fichiers de configuration PennyPet
+    Normaliseur amélioré utilisant le glossaire JSON existant
     """
     def __init__(self, config: PennyPetConfig):
         self.config = config
         self.cache: Dict[str, Optional[str]] = {}
         
-        # Récupération sécurisée de tous les éléments de configuration
+        # Récupération sécurisée des termes d'actes
         self.termes_actes = self._get_termes_actes_safe(config)
         self.actes_df = self._get_actes_df_safe(config)
         
-        # Utilisation du glossaire pharmaceutique existant
-        self.termes_medicaments = getattr(config, 'glossaire_pharmaceutique', set())
+        # Utilisation du glossaire pharmaceutique EXISTANT (set)
+        self.termes_medicaments = config.glossaire_pharmaceutique
         self.medicaments_df = getattr(config, 'medicaments_df', pd.DataFrame())
         self.mapping_amv = getattr(config, 'mapping_amv', {})
         
-        # Intégration de TOUS les fichiers de configuration
-        self.calculs_codes_df = getattr(config, 'calculs_codes_df', pd.DataFrame())
-        self.infos_financieres_df = getattr(config, 'infos_financieres_df', pd.DataFrame())
-        self.metadonnees_df = getattr(config, 'metadonnees_df', pd.DataFrame())
-        self.parties_benef_df = getattr(config, 'parties_benef_df', pd.DataFrame())
-        self.suivi_sla_df = getattr(config, 'suivi_sla_df', pd.DataFrame())
-        self.formules = getattr(config, 'formules', {})
-        
-        # Préprocessage du glossaire
+        # Préprocessage du glossaire (le glossaire est déjà un set)
         self.glossaire_normalise = self._preprocess_glossaire()
         
-        # Patterns regex étendus
+        # Patterns regex pour médicaments
         self.patterns_medicaments = [
-            r'\b\d+\s*(mg|ml|g|l|ui|iu|mcg|µg|mg/ml|ui/ml)\b',
-            r'\b(comprimé|gélule|cp|gél|sol|inj|ampoule|flacon|tube|boîte|sachet|pipette)\.?\s*\d*',
-            r'\b(antibiotic|anti-inflammatoire|antiparasitaire|antifongique|antiviral|vermifuge)\b',
-            r'\b(vaccin|vaccination|rappel|primo-vaccination|sérum|immunoglobuline)\b',
-            r'\b(seringue|pipette|spray|pommade|crème|lotion|collyre|gouttes)\b',
-            r'\b\d+\s*x\s*\d+\s*(mg|ml|g|l|cp|gél)\b',
-            r'\b(principe|actif|laboratoire|generique|specialite|marque)\b'
+            r'\b\d+\s*(mg|ml|g|l|ui|iu|mcg|µg)\b',
+            r'\b(comprimé|gélule|cp|gél|sol|inj|ampoule|flacon|tube|boîte)\.?\s*\d*',
+            r'\b(antibiotic|anti-inflammatoire|antiparasitaire|antifongique|antiviral)\b',
+            r'\b(vaccin|vaccination|rappel|primo-vaccination)\b',
+            r'\b(seringue|pipette|spray|pommade|crème|lotion)\b',
+            r'\b\d+\s*x\s*\d+\s*(mg|ml|g|l)\b',
+            r'\b(principe|actif|laboratoire|generique|specialite)\b'
         ]
         
-        self.patterns_actes = [
-            r'\b(consultation|examen|visite|contrôle|bilan)\b',
-            r'\b(chirurgie|opération|intervention|anesthésie)\b',
-            r'\b(radio|échographie|scanner|irm|endoscopie)\b',
-            r'\b(analyse|prélèvement|biopsie|cytologie)\b',
-            r'\b(hospitalisation|perfusion|soin|pansement)\b'
-        ]
+        # Variantes orthographiques courantes
+        self.variantes = {
+            'medicament': ['médicament', 'medicaments', 'médicaments'],
+            'gelule': ['gélule', 'gélules', 'gelules'],
+            'comprimes': ['comprimé', 'comprimés', 'comprimes'],
+            'solution': ['solutions', 'sol'],
+            'injection': ['injections', 'inj'],
+            'milligramme': ['mg', 'milligrammes'],
+            'millilitre': ['ml', 'millilitres'],
+            'gramme': ['g', 'grammes'],
+            'litre': ['l', 'litres']
+        }
         
         logger.info(f"Normaliseur initialisé: {len(self.termes_actes)} actes, {len(self.termes_medicaments)} médicaments")
 
     def _get_termes_actes_safe(self, config: PennyPetConfig) -> set:
-        """Récupère les termes d'actes depuis tous les fichiers"""
-        termes = set()
-        
+        """Récupère les termes d'actes de manière sécurisée"""
         try:
-            # Depuis actes_df
-            if hasattr(config, 'actes_df') and not config.actes_df.empty:
-                df = config.actes_df
-                for col in ['field_label', 'label', 'acte', 'description', 'libelle']:
-                    if col in df.columns:
-                        termes.update(df[col].dropna().astype(str).str.lower())
-                        break
+            if not hasattr(config, 'actes_df') or config.actes_df is None or config.actes_df.empty:
+                logger.warning("actes_df non disponible")
+                return set()
             
-            # Depuis calculs_codes_df
-            if hasattr(config, 'calculs_codes_df') and not config.calculs_codes_df.empty:
-                df = config.calculs_codes_df
-                for col in ['field_label', 'description']:
-                    if col in df.columns:
-                        termes.update(df[col].dropna().astype(str).str.lower())
+            df = config.actes_df
             
-            logger.info(f"Total termes d'actes: {len(termes)}")
+            # Vérifier field_label existe
+            if "field_label" in df.columns:
+                logger.info("Utilisation de la colonne 'field_label' pour les actes")
+                return set(df["field_label"].dropna().astype(str).str.lower())
+            
+            # Fallback sur d'autres colonnes possibles
+            possible_columns = ['label', 'acte', 'description', 'libelle', 'terme']
+            for col in possible_columns:
+                if col in df.columns:
+                    logger.info(f"Utilisation de la colonne '{col}' pour les actes")
+                    return set(df[col].dropna().astype(str).str.lower())
+            
+            # Dernière tentative avec la première colonne texte
+            text_columns = df.select_dtypes(include=['object']).columns
+            if len(text_columns) > 0:
+                col = text_columns[0]
+                logger.warning(f"Utilisation de '{col}' par défaut pour les actes")
+                return set(df[col].dropna().astype(str).str.lower())
+            
+            return set()
             
         except Exception as e:
             logger.error(f"Erreur extraction termes actes: {e}")
-        
-        return termes
+            return set()
 
     def _get_actes_df_safe(self, config: PennyPetConfig) -> pd.DataFrame:
-        """Récupère le DataFrame des actes"""
+        """Récupère le DataFrame des actes de manière sécurisée"""
         try:
-            if hasattr(config, 'actes_df') and not config.actes_df.empty:
-                df = config.actes_df
-                if 'pattern' in df.columns:
-                    return df.dropna(subset=["pattern"])
-            return pd.DataFrame()
+            if not hasattr(config, 'actes_df') or config.actes_df is None or config.actes_df.empty:
+                return pd.DataFrame()
+            
+            df = config.actes_df
+            
+            if 'pattern' in df.columns:
+                return df.dropna(subset=["pattern"])
+            else:
+                logger.warning("Colonne 'pattern' manquante dans actes_df")
+                return pd.DataFrame()
+                
         except Exception as e:
             logger.error(f"Erreur extraction DataFrame actes: {e}")
             return pd.DataFrame()
 
     def _preprocess_glossaire(self) -> Dict[str, str]:
-        """Préprocesse le glossaire pharmaceutique"""
+        """Préprocesse le glossaire pharmaceutique (déjà un set)"""
         glossaire_normalise = {}
         
         try:
+            # Le glossaire est déjà un set de termes en minuscules
             for terme in self.termes_medicaments:
                 if not terme:
                     continue
+                    
+                # Normalisation principale
                 terme_norm = normaliser_accents(str(terme))
                 if terme_norm:
                     glossaire_normalise[terme_norm] = terme
-            
-            # Depuis medicaments_df
-            if not self.medicaments_df.empty and 'medicament' in self.medicaments_df.columns:
-                for medicament in self.medicaments_df['medicament'].dropna():
-                    terme_norm = normaliser_accents(str(medicament))
-                    if terme_norm:
-                        glossaire_normalise[terme_norm] = str(medicament)
+                
+                # Ajouter les variantes
+                for variante in self._generer_variantes(str(terme)):
+                    variante_norm = normaliser_accents(variante)
+                    if variante_norm:
+                        glossaire_normalise[variante_norm] = terme
                         
         except Exception as e:
             logger.error(f"Erreur préprocessing glossaire: {e}")
@@ -341,21 +357,39 @@ class NormaliseurAMVAmeliore:
         logger.info(f"Glossaire normalisé: {len(glossaire_normalise)} entrées")
         return glossaire_normalise
 
-    def _detecter_patterns_medicaments(self, texte: str) -> bool:
-        """Détecte les patterns de médicaments"""
+    def _generer_variantes(self, terme: str) -> List[str]:
+        """Génère des variantes orthographiques d'un terme"""
+        variantes = [terme]
+        
         try:
-            texte_norm = normaliser_accents(texte)
-            return any(re.search(pattern, texte_norm, re.IGNORECASE) for pattern in self.patterns_medicaments)
-        except Exception:
-            return False
+            # Variantes avec/sans 's' final
+            if terme.endswith('s'):
+                variantes.append(terme[:-1])
+            else:
+                variantes.append(terme + 's')
+            
+            # Variantes avec abréviations
+            for base, abbrevs in self.variantes.items():
+                if base in terme.lower():
+                    for abbrev in abbrevs:
+                        variantes.append(terme.lower().replace(base, abbrev))
+        except Exception as e:
+            logger.debug(f"Erreur génération variantes pour '{terme}': {e}")
+        
+        return variantes
 
-    def _detecter_patterns_actes(self, texte: str) -> bool:
-        """Détecte les patterns d'actes"""
+    def _detecter_patterns_medicaments(self, texte: str) -> bool:
+        """Détecte les patterns typiques des médicaments"""
         try:
             texte_norm = normaliser_accents(texte)
-            return any(re.search(pattern, texte_norm, re.IGNORECASE) for pattern in self.patterns_actes)
-        except Exception:
-            return False
+            
+            for pattern in self.patterns_medicaments:
+                if re.search(pattern, texte_norm, re.IGNORECASE):
+                    return True
+        except Exception as e:
+            logger.debug(f"Erreur détection pattern médicament '{texte}': {e}")
+        
+        return False
 
     def normalise_acte(self, libelle_brut: str) -> Optional[str]:
         """Normalise un acte médical"""
@@ -367,9 +401,10 @@ class NormaliseurAMVAmeliore:
             if cle in self.cache:
                 return self.cache[cle]
             
+            # Normalisation pour recherche
             libelle_norm = normaliser_accents(libelle_brut)
             
-            # 1. Patterns regex dans actes_df
+            # 1. Pattern CSV exact
             if not self.actes_df.empty:
                 for _, row in self.actes_df.iterrows():
                     pattern = row.get("pattern")
@@ -382,12 +417,7 @@ class NormaliseurAMVAmeliore:
                         except Exception:
                             continue
             
-            # 2. Patterns prédéfinis
-            if self._detecter_patterns_actes(libelle_brut):
-                self.cache[cle] = "ACTE_MEDICAL"
-                return "ACTE_MEDICAL"
-            
-            # 3. Recherche sémantique
+            # 2. Fallback sémantique actes
             for terme in self.termes_actes:
                 try:
                     terme_norm = normaliser_accents(terme)
@@ -398,7 +428,7 @@ class NormaliseurAMVAmeliore:
                 except Exception:
                     continue
             
-            # 4. Fuzzy matching
+            # 3. Fuzzy matching sur les actes
             if RAPIDFUZZ_AVAILABLE and not self.actes_df.empty:
                 try:
                     codes = self.actes_df["code_acte"].dropna().astype(str).tolist()
@@ -418,7 +448,7 @@ class NormaliseurAMVAmeliore:
             return None
 
     def normalise_medicament(self, libelle_brut: str) -> Optional[str]:
-        """Normalise un médicament"""
+        """Normalise un médicament avec le glossaire JSON existant"""
         if not libelle_brut:
             return None
         
@@ -427,19 +457,20 @@ class NormaliseurAMVAmeliore:
             if cle in self.cache:
                 return self.cache[cle]
             
+            # Normalisation pour recherche
             libelle_norm = normaliser_accents(libelle_brut)
             
-            # 1. Patterns regex
+            # 1. Détection par patterns regex
             if self._detecter_patterns_medicaments(libelle_brut):
                 self.cache[cle] = "MEDICAMENTS"
                 return "MEDICAMENTS"
             
-            # 2. Glossaire exact
+            # 2. Recherche exacte dans glossaire normalisé
             if libelle_norm in self.glossaire_normalise:
                 self.cache[cle] = "MEDICAMENTS"
                 return "MEDICAMENTS"
             
-            # 3. Recherche partielle
+            # 3. Recherche partielle dans glossaire
             for terme_norm in self.glossaire_normalise.keys():
                 try:
                     if (terme_norm in libelle_norm or 
@@ -450,7 +481,7 @@ class NormaliseurAMVAmeliore:
                 except Exception:
                     continue
             
-            # 4. Fuzzy matching
+            # 4. Fuzzy matching intelligent
             if RAPIDFUZZ_AVAILABLE and self.glossaire_normalise:
                 try:
                     match, score, _ = process.extractOne(
@@ -472,35 +503,21 @@ class NormaliseurAMVAmeliore:
             return None
 
     def normalise(self, libelle_brut: str) -> Optional[str]:
-        """Normalise un libellé avec priorité intelligente"""
+        """Normalise un libellé (acte ou médicament)"""
         if not libelle_brut:
             return None
             
         try:
-            libelle_norm = normaliser_accents(libelle_brut)
+            # Priorité : actes d'abord, puis médicaments
+            result = self.normalise_acte(libelle_brut)
+            if result:
+                return result
             
-            # Détection rapide du type
-            indicateurs_medicaments = ['mg', 'ml', 'comprimé', 'gélule', 'flacon', 'injection']
-            indicateurs_actes = ['consultation', 'examen', 'visite', 'chirurgie', 'radio']
+            result = self.normalise_medicament(libelle_brut)
+            if result:
+                return result
             
-            est_medicament = any(ind in libelle_norm for ind in indicateurs_medicaments)
-            est_acte = any(ind in libelle_norm for ind in indicateurs_actes)
-            
-            if est_medicament and not est_acte:
-                result = self.normalise_medicament(libelle_brut)
-                if result:
-                    return result
-                result = self.normalise_acte(libelle_brut)
-                if result:
-                    return result
-            else:
-                result = self.normalise_acte(libelle_brut)
-                if result:
-                    return result
-                result = self.normalise_medicament(libelle_brut)
-                if result:
-                    return result
-            
+            # Fallback : retourner le libellé original normalisé
             return str(libelle_brut).strip().upper()
             
         except Exception as e:
@@ -508,24 +525,22 @@ class NormaliseurAMVAmeliore:
             return str(libelle_brut).strip().upper() if libelle_brut else None
 
     def get_mapping_stats(self) -> Dict[str, Any]:
-        """Statistiques complètes"""
+        """Retourne les statistiques de mapping"""
         return {
             "cache_size": len(self.cache),
             "actes": len(self.termes_actes),
             "medicaments": len(self.termes_medicaments),
             "glossaire_normalise": len(self.glossaire_normalise),
+            "patterns_medicaments": len(self.patterns_medicaments),
+            "variantes": len(self.variantes),
             "rapidfuzz": RAPIDFUZZ_AVAILABLE,
-            "dataframes": {
-                "actes_df": len(self.actes_df),
-                "medicaments_df": len(self.medicaments_df),
-                "calculs_codes_df": len(self.calculs_codes_df),
-                "infos_financieres_df": len(self.infos_financieres_df)
-            }
+            "actes_df_size": len(self.actes_df),
+            "medicaments_df_size": len(self.medicaments_df)
         }
 
 class PennyPetProcessor:
     """
-    Pipeline complet PennyPet avec gestion robuste des erreurs JSON
+    Pipeline extraction LLM, normalisation améliorée, calcul remboursement PennyPet.
     """
     def __init__(
         self,
@@ -536,26 +551,23 @@ class PennyPetProcessor:
         try:
             self.config = config or PennyPetConfig()
             
-            # Clients LLM
+            # Initialisation des clients
             try:
                 self.client_qwen = client_qwen or OpenRouterClient(model_key="primary")
-                logger.info("Client Qwen initialisé")
             except Exception as e:
-                logger.warning(f"Erreur client Qwen: {e}")
+                logger.warning(f"Erreur initialisation client Qwen: {e}")
                 self.client_qwen = None
                 
             try:
                 self.client_mistral = client_mistral or OpenRouterClient(model_key="secondary")
-                logger.info("Client Mistral initialisé")
             except Exception as e:
-                logger.warning(f"Erreur client Mistral: {e}")
+                logger.warning(f"Erreur initialisation client Mistral: {e}")
                 self.client_mistral = None
             
-            # Configuration
             self.regles_pc_df = getattr(self.config, 'regles_pc_df', pd.DataFrame())
             self.normaliseur = NormaliseurAMVAmeliore(self.config)
             
-            # Statistiques
+            # Statistiques de traitement
             self.stats = {
                 'lignes_traitees': 0,
                 'medicaments_detectes': 0,
@@ -572,7 +584,7 @@ class PennyPetProcessor:
     def extract_lignes_from_image(
         self, image_bytes: bytes, formule: str, llm_provider: str = "qwen"
     ) -> Tuple[Dict[str, Any], str]:
-        """Extraction avec gestion robuste des erreurs JSON"""
+        """Extrait les lignes d'une image avec gestion d'erreurs JSON robuste"""
         try:
             # Sélection du client
             if llm_provider.lower() == "qwen" and self.client_qwen:
@@ -582,7 +594,6 @@ class PennyPetProcessor:
             else:
                 raise ValueError(f"Client {llm_provider} non disponible")
             
-            # Appel LLM
             resp = client.analyze_invoice_image(image_bytes, formule)
             content = resp.choices[0].message.content
             
@@ -590,23 +601,25 @@ class PennyPetProcessor:
                 raise ValueError("Réponse vide du LLM")
             
             # Log pour debug
-            logger.info(f"Réponse LLM - Longueur: {len(content)}")
-            logger.debug(f"Début réponse: {content[:200]}")
-            logger.debug(f"Fin réponse: {content[-200:]}")
+            logger.info(f"Réponse LLM reçue - Longueur: {len(content)} caractères")
+            logger.debug(f"Début de réponse: {content[:200]}...")
+            logger.debug(f"Fin de réponse: ...{content[-200:]}")
             
-            # Extraction JSON robuste
+            # Extraction JSON robuste avec correctif ciblé
             data = extraire_json_robuste(content)
             
-            # Validation et nettoyage
             if "lignes" not in data:
-                raise ValueError("Pas de lignes dans la réponse")
+                raise ValueError("Le LLM n'a pas extrait de lignes exploitables.")
             
+            # Nettoyage des données
             for ligne in data["lignes"]:
+                # S'assurer que montant_ht est un nombre
                 try:
                     ligne["montant_ht"] = float(ligne.get("montant_ht", 0))
                 except (ValueError, TypeError):
                     ligne["montant_ht"] = 0.0
                 
+                # S'assurer que les chaînes sont propres
                 for key in ["code_acte", "description"]:
                     if key in ligne:
                         ligne[key] = str(ligne[key]).strip()
@@ -614,77 +627,62 @@ class PennyPetProcessor:
             return data, content
             
         except Exception as e:
-            logger.error(f"Erreur extraction: {e}")
+            logger.error(f"Erreur dans extract_lignes_from_image: {e}")
             raise
 
     def calculer_remboursement(
         self, montant: float, code_acte: str, formule: str, est_accident: bool
     ) -> Dict[str, Any]:
-        """Calcule le remboursement selon les règles PennyPet"""
-        try:
-            # Règles PennyPet directes (sans DataFrame pour éviter les erreurs)
-            if formule == "START":
-                return {
-                    "montant_ht": montant,
-                    "taux": 0.0,
-                    "remb_final": 0.0,
-                    "reste": montant
-                }
-            elif formule == "PREMIUM":
-                if est_accident:
-                    remb = min(montant, 500)  # Plafond 500€
-                    return {
-                        "montant_ht": montant,
-                        "taux": 100.0,
-                        "remb_final": remb,
-                        "reste": montant - remb
-                    }
-                else:
-                    return {
-                        "montant_ht": montant,
-                        "taux": 0.0,
-                        "remb_final": 0.0,
-                        "reste": montant
-                    }
-            elif formule == "INTEGRAL":
-                remb = min(montant * 0.5, 1000)  # 50% jusqu'à 1000€
-                return {
-                    "montant_ht": montant,
-                    "taux": 50.0,
-                    "remb_final": remb,
-                    "reste": montant - remb
-                }
-            elif formule == "INTEGRAL_PLUS":
-                remb = min(montant, 1000)  # 100% jusqu'à 1000€
-                return {
-                    "montant_ht": montant,
-                    "taux": 100.0,
-                    "remb_final": remb,
-                    "reste": montant - remb
-                }
-            else:
-                return {
-                    "montant_ht": montant,
-                    "taux": 0.0,
-                    "remb_final": 0.0,
-                    "reste": montant
-                }
-                
-        except Exception as e:
-            logger.error(f"Erreur calcul remboursement: {e}")
+        """Calcule le remboursement selon les règles"""
+        df = self.regles_pc_df.copy()
+        
+        # Construction du masque de filtrage
+        mask = (
+            (df["formule"] == formule)
+            & (
+                df["code_acte"].eq(code_acte)
+                | (
+                    df["code_acte"].fillna("ALL").eq("ALL")
+                    & df["actes_couverts"].apply(lambda l: code_acte in l if isinstance(l, list) else False)
+                )
+            )
+            & (
+                (df["type_couverture"] == "ACCIDENT_MALADIE")
+                | ((df["type_couverture"] == "ACCIDENT_SEULEMENT") & est_accident)
+            )
+        )
+        
+        reg = df[mask]
+        if reg.empty:
             return {
+                "erreur": f"Aucune règle trouvée pour {formule}/{code_acte}",
                 "montant_ht": montant,
                 "taux": 0.0,
                 "remb_final": 0.0,
                 "reste": montant
             }
+        
+        # Calcul du remboursement
+        r = reg.iloc[0]
+        taux = r["taux_remboursement"] / 100
+        plafond = r.get("plafond_annuel", float('inf'))
+        
+        remb_brut = montant * taux
+        remb_final = min(remb_brut, plafond)
+        
+        return {
+            "montant_ht": montant,
+            "taux": taux * 100,
+            "remb_final": remb_final,
+            "reste": montant - remb_final
+        }
 
     def process_facture_pennypet(
         self, file_bytes: bytes, formule_client: str, llm_provider: str = "qwen"
     ) -> Dict[str, Any]:
-        """Traitement complet d'une facture PennyPet"""
+        """Traite une facture PennyPet complète"""
         
-        # Reset stats
+        # Réinitialisation des stats
         self.stats = {
             'lignes_traitees': 0,
             'medicaments_detectes': 0,
@@ -693,90 +691,77 @@ class PennyPetProcessor:
         }
         
         try:
-            logger.info(f"Début traitement facture - Formule: {formule_client}")
-            
-            # Extraction
+            # Extraction des données
             data, raw_content = self.extract_lignes_from_image(file_bytes, formule_client, llm_provider)
             
-            resultats = []
+            resultats: List[Dict[str, Any]] = []
             accidents = {"accident", "urgent", "urgence", "fract", "trauma", "traumatisme"}
             
-            # Traitement des lignes
+            # Traitement de chaque ligne
             for ligne in data["lignes"]:
                 try:
+                    # Extraction des données de ligne
                     libelle = (ligne.get("code_acte") or ligne.get("description", "")).strip()
                     montant = float(ligne.get("montant_ht", 0) or 0)
                     
-                    # Normalisation
+                    # Normalisation du code acte
                     code_norm = self.normaliseur.normalise(libelle)
                     
-                    # Détection accident
+                    # Détection d'accident
                     est_acc = any(mot in libelle.lower() for mot in accidents)
                     
-                    # Remboursement
+                    # Calcul du remboursement
                     remb = self.calculer_remboursement(montant, code_norm, formule_client, est_acc)
                     
-                    # Stats
+                    # Mise à jour des statistiques
                     self.stats['lignes_traitees'] += 1
                     if code_norm == "MEDICAMENTS":
                         self.stats['medicaments_detectes'] += 1
                     else:
                         self.stats['actes_detectes'] += 1
                     
-                    # Création ligne résultat
-                    ligne_result = {
-                        "ligne": {
-                            "code_acte": libelle,
-                            "description": ligne.get("description", libelle),
-                            "montant_ht": montant,
-                            "est_medicament": (code_norm == "MEDICAMENTS")
-                        },
+                    # Ajout des résultats
+                    ligne.update({
                         "code_norm": code_norm,
                         "est_accident": est_acc,
-                        "taux_remboursement": remb["taux"],
-                        "montant_rembourse": remb["remb_final"],
-                        "montant_reste_charge": remb["reste"]
-                    }
-                    
-                    resultats.append(ligne_result)
+                        **remb
+                    })
+                    resultats.append(ligne)
                     
                 except Exception as e:
                     self.stats['erreurs_normalisation'] += 1
-                    logger.error(f"Erreur ligne {ligne}: {e}")
+                    logger.error(f"Erreur traitement ligne {ligne}: {e}")
                     continue
             
-            # Totaux
-            total_facture = sum(r["ligne"]["montant_ht"] for r in resultats)
-            total_rembourse = sum(r["montant_rembourse"] for r in resultats)
+            # Calcul des totaux
+            total_remb = sum(r.get("remb_final", 0) for r in resultats)
+            total_facture = sum(r.get("montant_ht", 0) for r in resultats)
             
             return {
                 "success": True,
                 "lignes": resultats,
-                "resume": {
-                    "total_facture": total_facture,
-                    "total_rembourse": total_rembourse,
-                    "reste_a_charge": total_facture - total_rembourse,
-                    "taux_remboursement_global": (total_rembourse / total_facture * 100) if total_facture > 0 else 0
-                },
-                "informations_client": data.get("informations_client", {}),
-                "statistiques": self.stats,
-                "raw_llm_response": raw_content
+                "total_remb": total_remb,
+                "total_facture": total_facture,
+                "reste_a_charge": total_facture - total_remb,
+                "stats": self.stats,
+                "mapping_stats": self.normaliseur.get_mapping_stats(),
+                "raw_llm_response": raw_content,
+                "informations_client": data.get("informations_client", {})
             }
             
         except Exception as e:
-            logger.error(f"Erreur traitement facture: {e}")
             return {
                 "success": False,
                 "error": str(e),
-                "statistiques": self.stats
+                "stats": self.stats
             }
 
     def get_processor_stats(self) -> Dict[str, Any]:
-        """Statistiques du processeur"""
+        """Retourne les statistiques complètes du processeur"""
         return {
             **self.stats,
             **self.normaliseur.get_mapping_stats()
         }
 
-# Instance globale
+# Instance globale pour usage direct
 pennypet_processor = PennyPetProcessor()
