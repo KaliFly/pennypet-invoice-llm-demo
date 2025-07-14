@@ -14,7 +14,7 @@ from llm_parser.pennypet_processor import PennyPetProcessor, parse_llm_json
 
 # Configuration de la page
 st.set_page_config(
-    page_title="🐾 PennyPet – Remboursements Vétérinaires",
+    page_title="PennyPet – Remboursements Vétérinaires",
     page_icon="🐾",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -310,7 +310,7 @@ with st.sidebar:
     
     st.markdown("""
     <div style="text-align: center; padding: 1rem; background: rgba(255,255,255,0.2); border-radius: 12px; margin-bottom: 1rem;">
-        <h3 style="color: white; margin: 0;">🐕 PennyPet</h3>
+        <h3 style="color: black; margin: 0;">🐕 PennyPet</h3>
         <p style="color: rgba(255,255,255,0.9); margin: 0; font-size: 0.9rem;">Ton compagnon remboursement !</p>
     </div>
     """, unsafe_allow_html=True)
