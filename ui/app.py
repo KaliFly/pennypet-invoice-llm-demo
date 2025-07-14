@@ -8,9 +8,11 @@ import plotly.express as px
 import plotly.graph_objects as go
 from PIL import Image
 import io
+import json
+import re
 from datetime import datetime
 from supabase import create_client
-from llm_parser.pennypet_processor import PennyPetProcessor, parse_llm_json
+from llm_parser.pennypet_processor import PennyPetProcessor
 
 # Configuration de la page
 st.set_page_config(
@@ -68,6 +70,7 @@ st.markdown("""
         font-size: 3.2rem;
         font-weight: 700;
         margin-bottom: 1rem;
+        font-family: 'Inter', sans-serif;
     }
 
     .pennypet-subtitle {
@@ -76,6 +79,7 @@ st.markdown("""
         font-size: 1.2rem;
         margin-bottom: 2rem;
         font-weight: 500;
+        line-height: 1.6;
     }
 
     /* Cartes */
@@ -124,6 +128,7 @@ st.markdown("""
         font-weight: 600 !important;
         transition: all 0.3s ease !important;
         box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3) !important;
+        font-family: 'Inter', sans-serif !important;
     }
 
     .stButton > button:hover {
@@ -140,6 +145,7 @@ st.markdown("""
         border-radius: 12px;
         margin: 1rem 0;
         border-left: 4px solid var(--pennypet-success);
+        font-weight: 500;
     }
 
     .pennypet-alert-error {
@@ -150,6 +156,7 @@ st.markdown("""
         border-radius: 12px;
         margin: 1rem 0;
         border-left: 4px solid var(--pennypet-pink);
+        font-weight: 500;
     }
 
     .pennypet-alert-warning {
@@ -160,6 +167,7 @@ st.markdown("""
         border-radius: 12px;
         margin: 1rem 0;
         border-left: 4px solid var(--pennypet-warning);
+        font-weight: 500;
     }
 
     .pennypet-alert-info {
@@ -170,6 +178,7 @@ st.markdown("""
         border-radius: 12px;
         margin: 1rem 0;
         border-left: 4px solid var(--pennypet-accent);
+        font-weight: 500;
     }
 
     /* Sidebar avec gradients */
@@ -193,12 +202,19 @@ st.markdown("""
         transition: all 0.3s ease;
     }
 
+    .pennypet-upload:hover {
+        border-color: var(--pennypet-secondary);
+        background: linear-gradient(135deg, rgba(240, 253, 252, 0.5) 0%, rgba(255, 245, 243, 0.5) 100%);
+        transform: translateY(-2px);
+    }
+
     /* Tabs */
     .stTabs [data-baseweb="tab-list"] {
         gap: 12px;
         background: rgba(248, 249, 250, 0.8);
         padding: 0.5rem;
         border-radius: 12px;
+        backdrop-filter: blur(10px);
     }
 
     .stTabs [data-baseweb="tab"] {
@@ -208,6 +224,7 @@ st.markdown("""
         font-weight: 600;
         color: var(--pennypet-dark);
         transition: all 0.3s ease;
+        border: 1px solid rgba(0, 0, 0, 0.05);
     }
 
     .stTabs [aria-selected="true"] {
@@ -232,6 +249,41 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+
+# Fonction parse_llm_json locale pour le debug
+def parse_llm_json(content: str) -> dict:
+    """Parse JSON depuis la réponse LLM avec nettoyage robuste"""
+    try:
+        # Nettoyage initial
+        content = content.strip()
+        
+        # Trouver le JSON
+        start = content.find("{")
+        if start < 0:
+            raise ValueError("Pas de JSON trouvé")
+        
+        depth = 0
+        json_str = None
+        for i, ch in enumerate(content[start:], start):
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    json_str = content[start : i + 1]
+                    break
+        
+        if not json_str:
+            raise ValueError("JSON malformé")
+        
+        # Nettoyage du JSON
+        json_str = re.sub(r'([{,]\s*)([a-zA-Z0-9_]+)\s*:', r'\1"\2":', json_str)
+        json_str = json_str.replace("'", '"')
+        json_str = re.sub(r',\s*([}\]])', r'\1', json_str)
+        
+        return json.loads(json_str)
+    except Exception as e:
+        raise ValueError(f"Erreur parsing JSON: {e}")
 
 # Messages PennyPet
 PENNYPET_MESSAGES = {
@@ -280,7 +332,7 @@ if 'client_info' not in st.session_state:
 if 'remboursement_result' not in st.session_state:
     st.session_state.remboursement_result = None
 
-# En-tête
+# En-tête PennyPet - FIX APPLIQUÉ
 st.markdown('<div class="main-container">', unsafe_allow_html=True)
 st.markdown("""
 <div class="fade-in">
@@ -309,9 +361,9 @@ with st.sidebar:
     st.markdown("### 🛠️ Configuration PennyPet")
     
     st.markdown("""
-    <div style="text-align: center; padding: 1rem; background: rgba(255,255,255,0.2); border-radius: 12px; margin-bottom: 1rem;">
-        <h3 style="color: black; margin: 0;">🐕 PennyPet</h3>
-        <p style="color: black; margin: 0; font-size: 0.9rem;">Ton compagnon remboursement !</p>
+    <div style="text-align: center; padding: 1rem; background: rgba(255,255,255,0.2); border-radius: 12px; margin-bottom: 1rem; backdrop-filter: blur(10px);">
+        <h3 style="color: white; margin: 0;">🐕 PennyPet</h3>
+        <p style="color: rgba(255,255,255,0.9); margin: 0; font-size: 0.9rem;">Ton compagnon remboursement !</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -567,7 +619,7 @@ with tab4:
 # TAB DEBUG (conditionnel)
 if debug_enabled:
     with tab_debug:
-        st.markdown("### 🐞 Debug JSON LLM")
+        st.markdown("### 🔧 Debug JSON LLM")
         
         if st.session_state.extraction_result:
             raw_response = st.session_state.extraction_result.get("raw_llm_response", "")
@@ -646,13 +698,16 @@ st.markdown('</div>', unsafe_allow_html=True)
 # Footer
 st.markdown("""
 ---
-<div style="text-align: center; padding: 2rem;">
+<div style="text-align: center; padding: 2rem; font-family: 'Inter', sans-serif;">
     <div style="background: linear-gradient(135deg, #fd79a8 0%, #A29BFE 50%, #6c5ce7 100%); padding: 2rem; border-radius: 16px; color: white; margin-bottom: 1rem;">
         <h3 style="margin: 0;">🐾 PennyPet</h3>
         <p style="margin: 0.5rem 0 0 0;">Ton compagnon remboursement vétérinaire</p>
     </div>
     <p style="margin: 0; font-size: 0.9rem; color: #6c757d;">
         💚 Développé avec amour par l'équipe PennyPet - Ensemble, prenons soin de nos animaux
+    </p>
+    <p style="margin: 0.5rem 0 0 0; font-size: 0.8rem; color: #6c757d;">
+        🏄‍♂️ Made in Biarritz  •  Innovation française
     </p>
 </div>
 """, unsafe_allow_html=True)
