@@ -10,7 +10,7 @@ from PIL import Image
 import io
 from datetime import datetime
 from supabase import create_client
-from llm_parser.pennypet_processor import PennyPetProcessor
+from llm_parser.pennypet_processor import PennyPetProcessor, parse_llm_json
 
 # Configuration de la page
 st.set_page_config(
@@ -20,41 +20,34 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS personnalisé avec fond sobre et titre sans gradient
+# CSS avec charte PennyPet (fond sobre + gradients rose-violet)
 st.markdown("""
 <style>
-    /* Import Google Fonts */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-    /* Palette PennyPet */
     :root {
-        --pennypet-primary: #FF6B35;      /* Orange signature */
-        --pennypet-secondary: #4ECDC4;    /* Turquoise bien-être */
-        --pennypet-accent: #45B7D1;       /* Bleu océan Biarritz */
-        --pennypet-success: #96CEB4;      /* Vert solidaire */
-        --pennypet-warning: #FFEAA7;      /* Jaune attention */
-        --pennypet-purple: #A29BFE;       /* Violet premium */
-        --pennypet-pink: #fd79a8;         /* Rose signature */
-        --pennypet-dark: #2D3436;         /* Gris foncé */
-        --pennypet-light: #F8F9FA;        /* Blanc cassé */
+        --pennypet-primary: #FF6B35;
+        --pennypet-secondary: #4ECDC4;
+        --pennypet-accent: #45B7D1;
+        --pennypet-success: #96CEB4;
+        --pennypet-warning: #FFEAA7;
+        --pennypet-purple: #A29BFE;
+        --pennypet-pink: #fd79a8;
+        --pennypet-dark: #2D3436;
+        --pennypet-light: #F8F9FA;
         --pennypet-gradient: linear-gradient(135deg, #FF6B35 0%, #4ECDC4 100%);
         --pennypet-gradient-title: linear-gradient(135deg, #fd79a8 0%, #A29BFE 50%, #6c5ce7 100%);
-        --pennypet-gradient-reverse: linear-gradient(135deg, #4ECDC4 0%, #FF6B35 100%);
         --pennypet-shadow: 0 8px 32px rgba(255, 107, 53, 0.1);
     }
 
-    /* Font family */
-    html, body, [class*="css"] {
-        font-family: 'Inter', sans-serif;
-    }
+    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 
-    /* Arrière-plan sobre et élégant */
+    /* FOND SOBRE */
     .stApp {
         background: linear-gradient(180deg, #FFFFFF 0%, #F8F9FA 100%);
         min-height: 100vh;
     }
 
-    /* Conteneur principal sobre */
     .main-container {
         background: rgba(255, 255, 255, 0.95);
         border-radius: 20px;
@@ -65,28 +58,27 @@ st.markdown("""
         backdrop-filter: blur(10px);
     }
 
-    /* TITRE PRINCIPAL SANS GRADIENT - Couleur unie pour voir l'émoji */
+    /* TITRE avec gradients rose-violet */
     .pennypet-header {
         text-align: center;
-        color: #FF6B35;
+        background: var(--pennypet-gradient-title);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
         font-size: 3.2rem;
         font-weight: 700;
         margin-bottom: 1rem;
-        font-family: 'Inter', sans-serif;
-        text-shadow: 0 2px 4px rgba(255, 107, 53, 0.1);
     }
 
-    /* Sous-titre avec couleur douce */
     .pennypet-subtitle {
         text-align: center;
         color: var(--pennypet-dark);
         font-size: 1.2rem;
         margin-bottom: 2rem;
         font-weight: 500;
-        line-height: 1.6;
     }
 
-    /* Cartes PennyPet avec fond sobre */
+    /* Cartes */
     .pennypet-card {
         background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
         border-radius: 16px;
@@ -100,10 +92,9 @@ st.markdown("""
     .pennypet-card:hover {
         transform: translateY(-5px);
         box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-        border-left-color: var(--pennypet-secondary);
     }
 
-    /* Métriques avec gradients PennyPet */
+    /* Métriques */
     .pennypet-metric {
         background: var(--pennypet-gradient);
         color: white;
@@ -115,9 +106,7 @@ st.markdown("""
         margin: 0.5rem;
     }
 
-    .pennypet-metric:hover {
-        transform: scale(1.05);
-    }
+    .pennypet-metric:hover { transform: scale(1.05); }
 
     .pennypet-metric-value {
         font-size: 2.2rem;
@@ -125,13 +114,7 @@ st.markdown("""
         margin-bottom: 0.5rem;
     }
 
-    .pennypet-metric-label {
-        font-size: 0.9rem;
-        opacity: 0.9;
-        font-weight: 500;
-    }
-
-    /* Boutons PennyPet avec gradients conservés */
+    /* Boutons */
     .stButton > button {
         background: var(--pennypet-gradient) !important;
         color: white !important;
@@ -139,10 +122,8 @@ st.markdown("""
         border-radius: 12px !important;
         padding: 0.75rem 2rem !important;
         font-weight: 600 !important;
-        font-size: 1rem !important;
         transition: all 0.3s ease !important;
         box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3) !important;
-        font-family: 'Inter', sans-serif !important;
     }
 
     .stButton > button:hover {
@@ -150,7 +131,7 @@ st.markdown("""
         box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4) !important;
     }
 
-    /* Alertes PennyPet avec fond sobre */
+    /* Alertes */
     .pennypet-alert-success {
         background: linear-gradient(135deg, rgba(150, 206, 180, 0.1) 0%, rgba(255, 234, 167, 0.1) 100%);
         border: 1px solid rgba(150, 206, 180, 0.3);
@@ -159,29 +140,6 @@ st.markdown("""
         border-radius: 12px;
         margin: 1rem 0;
         border-left: 4px solid var(--pennypet-success);
-        font-weight: 500;
-    }
-
-    .pennypet-alert-info {
-        background: linear-gradient(135deg, rgba(69, 183, 209, 0.1) 0%, rgba(78, 205, 196, 0.1) 100%);
-        border: 1px solid rgba(69, 183, 209, 0.3);
-        color: var(--pennypet-dark);
-        padding: 1rem;
-        border-radius: 12px;
-        margin: 1rem 0;
-        border-left: 4px solid var(--pennypet-accent);
-        font-weight: 500;
-    }
-
-    .pennypet-alert-warning {
-        background: linear-gradient(135deg, rgba(255, 234, 167, 0.1) 0%, rgba(255, 107, 53, 0.1) 100%);
-        border: 1px solid rgba(255, 107, 53, 0.3);
-        color: var(--pennypet-dark);
-        padding: 1rem;
-        border-radius: 12px;
-        margin: 1rem 0;
-        border-left: 4px solid var(--pennypet-warning);
-        font-weight: 500;
     }
 
     .pennypet-alert-error {
@@ -192,10 +150,29 @@ st.markdown("""
         border-radius: 12px;
         margin: 1rem 0;
         border-left: 4px solid var(--pennypet-pink);
-        font-weight: 500;
     }
 
-    /* Sidebar conserve ses gradients PennyPet */
+    .pennypet-alert-warning {
+        background: linear-gradient(135deg, rgba(255, 234, 167, 0.1) 0%, rgba(255, 107, 53, 0.1) 100%);
+        border: 1px solid rgba(255, 107, 53, 0.3);
+        color: var(--pennypet-dark);
+        padding: 1rem;
+        border-radius: 12px;
+        margin: 1rem 0;
+        border-left: 4px solid var(--pennypet-warning);
+    }
+
+    .pennypet-alert-info {
+        background: linear-gradient(135deg, rgba(69, 183, 209, 0.1) 0%, rgba(78, 205, 196, 0.1) 100%);
+        border: 1px solid rgba(69, 183, 209, 0.3);
+        color: var(--pennypet-dark);
+        padding: 1rem;
+        border-radius: 12px;
+        margin: 1rem 0;
+        border-left: 4px solid var(--pennypet-accent);
+    }
+
+    /* Sidebar avec gradients */
     .css-1d391kg {
         background: linear-gradient(180deg, #fd79a8 0%, #A29BFE 50%, #6c5ce7 100%);
     }
@@ -205,7 +182,7 @@ st.markdown("""
         font-weight: 600 !important;
     }
 
-    /* Upload zone sobre */
+    /* Upload zone */
     .pennypet-upload {
         border: 2px dashed var(--pennypet-primary);
         border-radius: 16px;
@@ -216,35 +193,12 @@ st.markdown("""
         transition: all 0.3s ease;
     }
 
-    .pennypet-upload:hover {
-        border-color: var(--pennypet-secondary);
-        background: linear-gradient(135deg, rgba(240, 253, 252, 0.5) 0%, rgba(255, 245, 243, 0.5) 100%);
-        transform: translateY(-2px);
-    }
-
-    /* Animation PennyPet conservée */
-    @keyframes pennypet-fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .pennypet-animated {
-        animation: pennypet-fadeIn 0.6s ease-out;
-    }
-
-    /* Tabs avec fond sobre */
+    /* Tabs */
     .stTabs [data-baseweb="tab-list"] {
         gap: 12px;
         background: rgba(248, 249, 250, 0.8);
         padding: 0.5rem;
         border-radius: 12px;
-        backdrop-filter: blur(10px);
     }
 
     .stTabs [data-baseweb="tab"] {
@@ -254,7 +208,6 @@ st.markdown("""
         font-weight: 600;
         color: var(--pennypet-dark);
         transition: all 0.3s ease;
-        border: 1px solid rgba(0, 0, 0, 0.05);
     }
 
     .stTabs [aria-selected="true"] {
@@ -263,59 +216,19 @@ st.markdown("""
         box-shadow: 0 4px 15px rgba(253, 121, 168, 0.3);
     }
 
-    /* Progress bar sobre */
-    .pennypet-progress {
-        background: rgba(0, 0, 0, 0.05);
-        border-radius: 10px;
-        padding: 0.5rem;
-        margin: 1rem 0;
+    /* Animations */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 
-    .pennypet-progress-bar {
-        background: var(--pennypet-gradient-title);
-        height: 20px;
-        border-radius: 10px;
-        transition: width 0.3s ease;
-    }
+    .fade-in { animation: fadeIn 0.6s ease-out; }
 
-    /* Formule cards avec couleurs conservées */
-    .formule-start { border-left-color: #6c757d !important; }
-    .formule-premium { border-left-color: var(--pennypet-primary) !important; }
-    .formule-integral { border-left-color: var(--pennypet-secondary) !important; }
-    .formule-integral-plus { border-left-color: var(--pennypet-purple) !important; }
-
-    /* Metrics grid */
     .metrics-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 1rem;
         margin: 2rem 0;
-    }
-
-    /* Dataframe styling sobre */
-    .dataframe {
-        border-radius: 10px;
-        overflow: hidden;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        border: 1px solid rgba(0, 0, 0, 0.05);
-    }
-
-    /* Debug section styling */
-    .debug-section {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        border: 1px solid #dee2e6;
-        border-radius: 12px;
-        padding: 1rem;
-        margin: 1rem 0;
-    }
-
-    .debug-card {
-        background: white;
-        border-radius: 8px;
-        padding: 1rem;
-        margin: 0.5rem 0;
-        border-left: 3px solid #6c757d;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -324,299 +237,53 @@ st.markdown("""
 PENNYPET_MESSAGES = {
     "welcome": "🐾 Bienvenue sur PennyPet ! Ensemble, simplifions la gestion des soins de ton animal",
     "upload_success": "✅ Super ! Ta facture a été analysée avec succès. Découvrons ensemble ce que PennyPet peut rembourser",
-    "search_client": "🔍 Recherchons ton contrat PennyPet pour personnaliser tes remboursements",
-    "no_contract": "💡 Pas de souci ! Utilisons le mode simulation pour découvrir ce que PennyPet pourrait t'apporter",
     "calculation_done": "🎉 Parfait ! Voici le détail de tes remboursements PennyPet",
     "save_success": "💾 Excellent ! Ton remboursement a été enregistré. L'équipe PennyPet s'occupe du reste !",
     "error": "😔 Oups ! Une petite erreur s'est glissée. L'équipe PennyPet va régler ça rapidement"
 }
 
-# Fonctions utilitaires PennyPet
+# Fonctions utilitaires
 def display_pennypet_alert(message, alert_type="info", emoji="✨"):
-    """Affiche une alerte dans le style PennyPet"""
-    st.markdown(f"""
-    <div class="pennypet-alert-{alert_type} pennypet-animated">
-        {emoji} {message}
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f'<div class="pennypet-alert-{alert_type} fade-in">{emoji} {message}</div>', unsafe_allow_html=True)
 
 def display_pennypet_metric(value, label, emoji="📊"):
-    """Affiche une métrique dans le style PennyPet"""
     return f"""
-    <div class="pennypet-metric pennypet-animated">
+    <div class="pennypet-metric fade-in">
         <div class="pennypet-metric-value">{emoji} {value}</div>
-        <div class="pennypet-metric-label">{label}</div>
-    </div>
-    """
-
-def create_pennypet_progress(progress, total, label=""):
-    """Crée une barre de progression PennyPet"""
-    percentage = (progress / total) * 100 if total > 0 else 0
-    return f"""
-    <div class="pennypet-progress">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; color: var(--pennypet-dark); font-weight: 500;">
-            <span>🚀 {label}</span>
-            <span>{percentage:.1f}%</span>
-        </div>
-        <div class="pennypet-progress-bar" style="width: {percentage}%;"></div>
+        <div class="pennypet-metric-label" style="font-size: 0.9rem; opacity: 0.9;">{label}</div>
     </div>
     """
 
 def get_pennypet_formule_info(formule):
-    """Retourne les informations PennyPet des formules"""
     formules_pennypet = {
-        "START": {
-            "type": "aucune_couverture",
-            "taux_remboursement": 0,
-            "plafond": 0,
-            "description": "Pas d'assurance incluse",
-            "couverture": "Aucune couverture",
-            "color": "#6c757d",
-            "emoji": "📱"
-        },
-        "PREMIUM": {
-            "type": "accident_uniquement", 
-            "taux_remboursement": 100,
-            "plafond": 500,
-            "description": "Fonds d'urgence accident – prise en charge des frais consécutifs à un accident, jusqu'à 500€ par an",
-            "couverture": "Accidents uniquement",
-            "color": "#FF6B35",
-            "emoji": "🚨"
-        },
-        "INTEGRAL": {
-            "type": "accident_et_maladie",
-            "taux_remboursement": 50,
-            "plafond": 1000,
-            "description": "Assurance santé animale – prise en charge à 50% des frais vétérinaires (accident & maladie), plafond 1000€ par an",
-            "couverture": "Accidents et maladies",
-            "color": "#4ECDC4",
-            "emoji": "💚"
-        },
-        "INTEGRAL_PLUS": {
-            "type": "accident_et_maladie",
-            "taux_remboursement": 100,
-            "plafond": 1000,
-            "description": "Assurance santé animale – prise en charge à 100% des frais vétérinaires (accident & maladie), plafond 1000€ par an",
-            "couverture": "Accidents et maladies",
-            "color": "#A29BFE",
-            "emoji": "💜"
-        }
+        "START": {"taux_remboursement": 0, "plafond": 0, "description": "Pas d'assurance incluse", "couverture": "Aucune couverture", "color": "#6c757d", "emoji": "📱"},
+        "PREMIUM": {"taux_remboursement": 100, "plafond": 500, "description": "Fonds d'urgence accident – prise en charge des frais consécutifs à un accident, jusqu'à 500€ par an", "couverture": "Accidents uniquement", "color": "#FF6B35", "emoji": "🚨"},
+        "INTEGRAL": {"taux_remboursement": 50, "plafond": 1000, "description": "Assurance santé animale – prise en charge à 50% des frais vétérinaires (accident & maladie), plafond 1000€ par an", "couverture": "Accidents et maladies", "color": "#4ECDC4", "emoji": "💚"},
+        "INTEGRAL_PLUS": {"taux_remboursement": 100, "plafond": 1000, "description": "Assurance santé animale – prise en charge à 100% des frais vétérinaires (accident & maladie), plafond 1000€ par an", "couverture": "Accidents et maladies", "color": "#A29BFE", "emoji": "💜"}
     }
     return formules_pennypet.get(formule, formules_pennypet["START"])
 
-def get_pennypet_formule_card(formule, info):
-    """Crée une carte de formule PennyPet"""
-    return f"""
-    <div class="pennypet-card formule-{formule.lower().replace('_', '-')}">
-        <h4>{info['emoji']} {formule}</h4>
-        <p><strong>Couverture:</strong> {info['couverture']}</p>
-        <p><strong>Remboursement:</strong> <span style="color: {info['color']}; font-weight: bold;">{info['taux_remboursement']}%</span></p>
-        <p><strong>Plafond:</strong> <span style="color: {info['color']}; font-weight: bold;">{info['plafond']}€/an</span></p>
-        <p style="font-style: italic; font-size: 0.9rem; margin-top: 1rem;">{info['description']}</p>
-    </div>
-    """
-
 def validate_file(uploaded_file):
-    """Valide le fichier uploadé"""
     if not uploaded_file:
         return False, "Aucun fichier sélectionné"
-    
-    if uploaded_file.size > 10 * 1024 * 1024:  # 10MB
+    if uploaded_file.size > 10 * 1024 * 1024:
         return False, "Fichier trop volumineux (max 10MB)"
-    
     if uploaded_file.type not in ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']:
         return False, "Type de fichier non supporté"
-    
     return True, "Fichier valide"
 
-def display_debug_section():
-    """Affiche la section debug complète"""
-    st.markdown("### 🔧 Debug PennyPet")
-    
-    if not st.session_state.extraction_result:
-        display_pennypet_alert("⚠️ Aucune extraction disponible pour le debug", "warning", "💡")
-        return
-    
-    result = st.session_state.extraction_result
-    
-    # Onglets de debug
-    debug_tab1, debug_tab2, debug_tab3, debug_tab4 = st.tabs(["📄 Réponse LLM", "🔍 JSON Parsé", "📊 Statistiques", "⚙️ Configuration"])
-    
-    with debug_tab1:
-        st.markdown("#### 📄 Réponse brute du LLM")
-        raw_response = result.get('raw_llm_response', '')
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("**Informations générales:**")
-            st.info(f"""
-            - Longueur: {len(raw_response)} caractères
-            - Lignes: {raw_response.count(chr(10))} lignes
-            - Contient JSON: {'✅' if '{' in raw_response else '❌'}
-            """)
-        
-        with col2:
-            st.markdown("**Actions de debug:**")
-            if st.button("📋 Copier dans le presse-papier"):
-                st.code(raw_response[:500] + "..." if len(raw_response) > 500 else raw_response)
-        
-        st.markdown("**Contenu complet:**")
-        st.text_area("Réponse LLM complète", raw_response, height=300, help="Réponse brute du modèle de langage")
-        
-        # Analyse des patterns
-        st.markdown("**Analyse des patterns:**")
-        patterns_found = []
-        if '"lignes"' in raw_response: patterns_found.append("✅ Lignes détectées")
-        if '"montant_total"' in raw_response: patterns_found.append("✅ Montant total détecté")
-        if '"informations_client"' in raw_response: patterns_found.append("✅ Infos client détectées")
-        if raw_response.count('{') != raw_response.count('}'): patterns_found.append("❌ Accolades déséquilibrées")
-        if raw_response.count('[') != raw_response.count(']'): patterns_found.append("❌ Crochets déséquilibrés")
-        
-        for pattern in patterns_found:
-            st.write(pattern)
-    
-    with debug_tab2:
-        st.markdown("#### 🔍 Données JSON extraites")
-        
-        # Test de parsing en temps réel
-        if st.button("🧪 Tester le parsing JSON"):
-            try:
-                from llm_parser.pennypet_processor import extraire_json_robuste
-                test_data = extraire_json_robuste(raw_response)
-                st.success("✅ JSON parsé avec succès")
-                st.json(test_data)
-            except Exception as e:
-                st.error(f"❌ Erreur parsing: {e}")
-                st.code(str(e))
-        
-        # Affichage du JSON parsé
-        if result.get('success'):
-            st.markdown("**Données extraites:**")
-            
-            # Informations client
-            infos_client = result.get('informations_client', {})
-            if infos_client:
-                st.markdown("**📋 Informations client extraites:**")
-                client_df = pd.DataFrame([infos_client])
-                st.dataframe(client_df)
-            
-            # Lignes de facture
-            lignes = result.get('lignes', [])
-            if lignes:
-                st.markdown(f"**📄 Lignes extraites ({len(lignes)}):**")
-                
-                # Créer un DataFrame des lignes pour affichage
-                lignes_data = []
-                for i, ligne in enumerate(lignes):
-                    ligne_info = ligne.get('ligne', ligne)
-                    lignes_data.append({
-                        'Index': i+1,
-                        'Code/Description': ligne_info.get('code_acte', ''),
-                        'Montant HT': ligne_info.get('montant_ht', 0),
-                        'Type détecté': '💊' if ligne_info.get('est_medicament') else '🏥',
-                        'Code normalisé': ligne.get('code_norm', '')
-                    })
-                
-                lignes_df = pd.DataFrame(lignes_data)
-                st.dataframe(lignes_df, use_container_width=True)
-    
-    with debug_tab3:
-        st.markdown("#### 📊 Statistiques détaillées")
-        
-        # Statistiques de traitement
-        stats = result.get('stats', {})
-        mapping_stats = result.get('mapping_stats', {})
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("**🔄 Traitement:**")
-            st.metric("Lignes traitées", stats.get('lignes_traitees', 0))
-            st.metric("Médicaments détectés", stats.get('medicaments_detectes', 0))
-            st.metric("Actes détectés", stats.get('actes_detectes', 0))
-            st.metric("Erreurs normalisation", stats.get('erreurs_normalisation', 0))
-        
-        with col2:
-            st.markdown("**🧠 Normaliseur:**")
-            st.metric("Taille du cache", mapping_stats.get('cache_size', 0))
-            st.metric("Termes actes", mapping_stats.get('actes', 0))
-            st.metric("Termes médicaments", mapping_stats.get('medicaments', 0))
-            st.metric("RapidFuzz", "✅" if mapping_stats.get('rapidfuzz') else "❌")
-        
-        # Graphique des statistiques
-        if stats.get('lignes_traitees', 0) > 0:
-            fig = px.pie(
-                values=[stats.get('medicaments_detectes', 0), stats.get('actes_detectes', 0)],
-                names=['Médicaments', 'Actes'],
-                title="Répartition des détections",
-                color_discrete_sequence=['#4ECDC4', '#FF6B35']
-            )
-            st.plotly_chart(fig, use_container_width=True)
-    
-    with debug_tab4:
-        st.markdown("#### ⚙️ Configuration système")
-        
-        # Informations sur la configuration
-        processor = PennyPetProcessor()
-        config = processor.config
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("**📁 Fichiers de configuration:**")
-            config_info = {
-                'actes_df': len(getattr(config, 'actes_df', pd.DataFrame())),
-                'medicaments_df': len(getattr(config, 'medicaments_df', pd.DataFrame())),
-                'regles_pc_df': len(getattr(config, 'regles_pc_df', pd.DataFrame())),
-                'glossaire_pharmaceutique': len(getattr(config, 'glossaire_pharmaceutique', set())),
-                'mapping_amv': len(getattr(config, 'mapping_amv', {})),
-                'formules': len(getattr(config, 'formules', {}))
-            }
-            
-            for key, value in config_info.items():
-                st.metric(key, value)
-        
-        with col2:
-            st.markdown("**🔧 Paramètres système:**")
-            st.info(f"""
-            - Provider LLM: {st.session_state.get('current_provider', 'qwen')}
-            - Client Qwen: {'✅' if processor.client_qwen else '❌'}
-            - Client Mistral: {'✅' if processor.client_mistral else '❌'}
-            - Cache normaliseur: {len(processor.normaliseur.cache)} entrées
-            """)
-        
-        # Test des clients LLM
-        st.markdown("**🧪 Test des clients:**")
-        if st.button("Tester la connexion Qwen"):
-            try:
-                if processor.client_qwen:
-                    st.success("✅ Client Qwen disponible")
-                else:
-                    st.error("❌ Client Qwen non disponible")
-            except Exception as e:
-                st.error(f"❌ Erreur client Qwen: {e}")
-        
-        if st.button("Tester la connexion Mistral"):
-            try:
-                if processor.client_mistral:
-                    st.success("✅ Client Mistral disponible")
-                else:
-                    st.error("❌ Client Mistral non disponible")
-            except Exception as e:
-                st.error(f"❌ Erreur client Mistral: {e}")
-
-# Initialisation de la session
-if 'processing_step' not in st.session_state:
-    st.session_state.processing_step = 0
+# Initialisation session
 if 'extraction_result' not in st.session_state:
     st.session_state.extraction_result = None
 if 'client_info' not in st.session_state:
     st.session_state.client_info = None
+if 'remboursement_result' not in st.session_state:
+    st.session_state.remboursement_result = None
 
-# En-tête PennyPet avec titre sans gradient
+# En-tête
 st.markdown('<div class="main-container">', unsafe_allow_html=True)
 st.markdown("""
-<div class="pennypet-animated">
+<div class="fade-in">
     <h1 class="pennypet-header">🐾 PennyPet Remboursements</h1>
     <p class="pennypet-subtitle">
         <strong>Ton assistant intelligent pour les remboursements vétérinaires</strong><br>
@@ -628,89 +295,61 @@ st.markdown("""
 # Connexion Supabase
 @st.cache_resource
 def init_supabase():
-    """Initialise la connexion Supabase"""
     if "SUPABASE_URL" not in st.secrets or "SUPABASE_KEY" not in st.secrets:
         st.error("❗ Veuillez définir SUPABASE_URL et SUPABASE_KEY dans vos secrets.")
         st.stop()
-    
     url = st.secrets["SUPABASE_URL"]
     key = st.secrets["SUPABASE_KEY"]
     return create_client(url, key)
 
 supabase = init_supabase()
 
-# Sidebar PennyPet avec gradients rose-violet
+# Sidebar
 with st.sidebar:
     st.markdown("### 🛠️ Configuration PennyPet")
     
-    # Mascotte PennyPet
     st.markdown("""
-    <div style="text-align: center; padding: 1rem; background: rgba(255,255,255,0.2); border-radius: 12px; margin-bottom: 1rem; backdrop-filter: blur(10px);">
+    <div style="text-align: center; padding: 1rem; background: rgba(255,255,255,0.2); border-radius: 12px; margin-bottom: 1rem;">
         <h3 style="color: white; margin: 0;">🐕 PennyPet</h3>
         <p style="color: rgba(255,255,255,0.9); margin: 0; font-size: 0.9rem;">Ton compagnon remboursement !</p>
     </div>
     """, unsafe_allow_html=True)
     
+    # DEBUG ACTIVÉ DÈS LE DÉBUT
+    debug_enabled = st.checkbox("🔧 Activer mode debug", value=True)
+    
     with st.expander("🤖 Assistant IA", expanded=True):
-        provider = st.selectbox(
-            "Modèle d'extraction",
-            ["qwen", "mistral"],
-            index=0,
-            help="🧠 Choisis ton assistant IA PennyPet pour analyser tes factures"
-        )
-        st.session_state.current_provider = provider
-        
+        provider = st.selectbox("Modèle d'extraction", ["qwen", "mistral"], index=0)
         formules_possibles = ["START", "PREMIUM", "INTEGRAL", "INTEGRAL_PLUS"]
-        formule_simulation = st.selectbox(
-            "Formule (simulation)",
-            formules_possibles,
-            index=0,
-            help="📋 Formule utilisée en mode simulation"
-        )
+        formule_simulation = st.selectbox("Formule (simulation)", formules_possibles, index=0)
     
-    # MODE DEBUG - Section principale
-    st.markdown("### 🔧 Mode Debug")
-    debug_enabled = st.checkbox("Activer le mode debug", help="Active les outils de diagnostic et debug")
-    
-    if debug_enabled:
-        st.markdown("**🔍 Outils de debug disponibles:**")
-        st.info("• Réponse brute du LLM\n• JSON parsé\n• Statistiques détaillées\n• Configuration système")
-    
-    with st.expander("📋 Formules PennyPet", expanded=True):
-        for formule in formules_possibles:
-            info = get_pennypet_formule_info(formule)
-            st.markdown(get_pennypet_formule_card(formule, info), unsafe_allow_html=True)
-    
-    # Communauté PennyPet
-    st.markdown("### 🌟 Communauté PennyPet")
-    st.markdown("""
-    <div class="pennypet-card">
-        <p style="text-align: center; margin: 0;">
-            🐾 <strong>Plus de 11 000 pet-parents</strong><br>
-            font confiance à PennyPet !
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Statistiques si disponibles
+    # Stats en temps réel
     if st.session_state.extraction_result:
         st.markdown("### 📊 Statistiques")
-        stats = st.session_state.extraction_result.get('stats', {})
+        stats = st.session_state.extraction_result.get('statistiques', {})
         st.metric("🔍 Lignes traitées", stats.get('lignes_traitees', 0))
         st.metric("💊 Médicaments détectés", stats.get('medicaments_detectes', 0))
         st.metric("🏥 Actes détectés", stats.get('actes_detectes', 0))
 
-# Interface principale avec tabs et debug
+# TABS avec debug conditionnel
 if debug_enabled:
-    # Mode debug activé - tabs avec debug
-    tab1, tab2, tab3, tab4, tab_debug = st.tabs(["📄 Upload & Extraction", "🔍 Identification Client", "💰 Remboursement", "📈 Analyse", "🔧 Debug"])
+    tab1, tab2, tab3, tab4, tab_debug = st.tabs([
+        "📄 Upload & Extraction", 
+        "🔍 Identification Client", 
+        "💰 Remboursement", 
+        "📈 Analyse",
+        "🔧 Debug JSON"
+    ])
 else:
-    # Mode normal
-    tab1, tab2, tab3, tab4 = st.tabs(["📄 Upload & Extraction", "🔍 Identification Client", "💰 Remboursement", "📈 Analyse"])
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "📄 Upload & Extraction", 
+        "🔍 Identification Client", 
+        "💰 Remboursement", 
+        "📈 Analyse"
+    ])
 
 with tab1:
     st.markdown("### 📁 Upload de ta Facture Vétérinaire")
-    
     display_pennypet_alert(PENNYPET_MESSAGES["welcome"], "info", "🐾")
     
     col1, col2 = st.columns([2, 1])
@@ -720,19 +359,14 @@ with tab1:
         uploaded = st.file_uploader(
             "🐕 Glisse-dépose ta facture ou clique pour sélectionner",
             type=["pdf", "jpg", "png", "jpeg"],
-            label_visibility="collapsed",
-            help="📋 Formats supportés: PDF, JPG, PNG (max 10MB)"
+            label_visibility="collapsed"
         )
         st.markdown('</div>', unsafe_allow_html=True)
         
         if uploaded:
             is_valid, message = validate_file(uploaded)
             if is_valid:
-                display_pennypet_alert(
-                    f"✅ {message} - {uploaded.name} ({uploaded.size:,} bytes)", 
-                    "success", 
-                    "🎉"
-                )
+                display_pennypet_alert(f"✅ {message} - {uploaded.name}", "success", "🎉")
             else:
                 display_pennypet_alert(f"❌ {message}", "error", "😔")
                 st.stop()
@@ -749,7 +383,7 @@ with tab1:
                 st.markdown("""
                 <div class="pennypet-card">
                     <h4>📄 PDF détecté</h4>
-                    <p>Le fichier sera automatiquement converti en image pour l'analyse par notre IA PennyPet.</p>
+                    <p>Le fichier sera automatiquement converti en image pour l'analyse.</p>
                 </div>
                 """, unsafe_allow_html=True)
     
@@ -760,70 +394,51 @@ with tab1:
             st.stop()
         
         processor = PennyPetProcessor()
-        progress_placeholder = st.empty()
-        
-        progress_placeholder.markdown(
-            create_pennypet_progress(1, 3, "Extraction des données..."), 
-            unsafe_allow_html=True
-        )
         
         try:
             with st.spinner("🔍 L'IA PennyPet analyse ta facture..."):
-                temp = processor.process_facture_pennypet(
+                result = processor.process_facture_pennypet(
                     file_bytes=bytes_data,
                     formule_client="INTEGRAL",
                     llm_provider=provider
                 )
                 
-                if not temp.get('success', False):
+                if not result.get('success', False):
                     display_pennypet_alert(
-                        f"❌ {PENNYPET_MESSAGES['error']}: {temp.get('error', 'Erreur inconnue')}", 
-                        "error", 
-                        "😔"
+                        f"❌ {PENNYPET_MESSAGES['error']}: {result.get('error', 'Erreur inconnue')}", 
+                        "error", "😔"
                     )
+                    # Afficher l'erreur détaillée en debug
+                    if debug_enabled:
+                        st.error(f"Détail erreur: {result.get('error', 'N/A')}")
                     st.stop()
                 
-                st.session_state.extraction_result = temp
-                st.session_state.processing_step = 1
+                st.session_state.extraction_result = result
                 
         except Exception as e:
-            display_pennypet_alert(
-                f"❌ {PENNYPET_MESSAGES['error']}: {str(e)}", 
-                "error", 
-                "😔"
-            )
+            display_pennypet_alert(f"❌ {PENNYPET_MESSAGES['error']}: {str(e)}", "error", "😔")
+            if debug_enabled:
+                st.exception(e)
             st.stop()
         
-        progress_placeholder.markdown(
-            create_pennypet_progress(3, 3, "Extraction terminée !"), 
-            unsafe_allow_html=True
-        )
         display_pennypet_alert(PENNYPET_MESSAGES["upload_success"], "success", "🎉")
 
 with tab2:
     st.markdown("### 🔍 Identification de ton Contrat PennyPet")
     
     if not st.session_state.extraction_result:
-        display_pennypet_alert(
-            "⚠️ Commence par extraire les données de ta facture dans l'onglet précédent.", 
-            "warning", 
-            "💡"
-        )
+        display_pennypet_alert("⚠️ Commence par extraire les données de ta facture.", "warning", "💡")
     else:
-        display_pennypet_alert(PENNYPET_MESSAGES["search_client"], "info", "🔍")
-        
-        # Récupération des informations client
+        # Informations extraites
         infos = st.session_state.extraction_result.get("informations_client", {})
         identification = infos.get("identification")
         nom_proprietaire = infos.get("nom_proprietaire")
         nom_animal = infos.get("nom_animal")
         
-        st.markdown("#### 📋 Informations extraites de ta facture")
-        
         col1, col2, col3 = st.columns(3)
         with col1:
             st.markdown(f"""
-            <div class="pennypet-card pennypet-animated">
+            <div class="pennypet-card fade-in">
                 <h4>👤 Propriétaire</h4>
                 <p><strong>{nom_proprietaire or 'Non détecté'}</strong></p>
             </div>
@@ -831,7 +446,7 @@ with tab2:
         
         with col2:
             st.markdown(f"""
-            <div class="pennypet-card pennypet-animated">
+            <div class="pennypet-card fade-in">
                 <h4>🐾 Animal</h4>
                 <p><strong>{nom_animal or 'Non détecté'}</strong></p>
             </div>
@@ -839,477 +454,205 @@ with tab2:
         
         with col3:
             st.markdown(f"""
-            <div class="pennypet-card pennypet-animated">
+            <div class="pennypet-card fade-in">
                 <h4>🆔 Identification</h4>
                 <p><strong>{identification or 'Non détecté'}</strong></p>
             </div>
             """, unsafe_allow_html=True)
         
-        st.markdown("#### 🔗 Recherche de ton contrat PennyPet")
-        
-        search_performed = False
-        res = []
-        
+        # Recherche contrat (simulation pour démo)
         if st.button("🔍 Rechercher mon contrat PennyPet", type="primary"):
-            search_performed = True
+            # Simulation d'un contrat trouvé
+            client = {
+                "proprietaire": nom_proprietaire or "Demo Propriétaire",
+                "animal": nom_animal or "Demo Animal",
+                "type_animal": "Chien",
+                "formule": "INTEGRAL",
+                "identification": identification or "DEMO123"
+            }
+            st.session_state.client_info = client
             
-            with st.spinner("🔍 Recherche dans la base PennyPet..."):
-                try:
-                    # Recherche par identification
-                    if identification:
-                        with st.expander("🆔 Recherche par identification", expanded=True):
-                            st.info(f"🔍 Recherche pour: {identification}")
-                            res = supabase.table("contrats_animaux") \
-                                .select("proprietaire,animal,type_animal,date_naissance,identification,formule") \
-                                .eq("identification", identification) \
-                                .limit(1).execute().data
-                            
-                            if res:
-                                display_pennypet_alert("✅ Contrat trouvé par identification!", "success", "🎉")
-                            else:
-                                st.warning("⚠️ Aucun contrat trouvé par identification")
-                    
-                    # Fallback par nom de propriétaire
-                    if not res and nom_proprietaire:
-                        with st.expander("👤 Recherche par nom de propriétaire", expanded=True):
-                            terme = f"%{nom_proprietaire.strip()}%"
-                            st.info(f"🔍 Recherche pour: {terme}")
-                            rpc_resp = supabase.rpc("search_contrat_by_name", {"term": terme}).execute()
-                            res = rpc_resp.data
-                            
-                            if res:
-                                display_pennypet_alert(f"✅ {len(res)} contrat(s) trouvé(s) par nom!", "success", "🎉")
-                            else:
-                                st.warning("⚠️ Aucun contrat trouvé par nom de propriétaire")
-                    
-                    # Fallback par nom d'animal
-                    if not res and nom_animal:
-                        with st.expander("🐾 Recherche par nom d'animal", expanded=True):
-                            terme = f"%{nom_animal.strip()}%"
-                            st.info(f"🔍 Recherche pour: {terme}")
-                            rpc_resp = supabase.rpc("search_contrat_by_name", {"term": terme}).execute()
-                            res = rpc_resp.data
-                            
-                            if res:
-                                display_pennypet_alert(f"✅ {len(res)} contrat(s) trouvé(s) par nom d'animal!", "success", "🎉")
-                            else:
-                                st.warning("⚠️ Aucun contrat trouvé par nom d'animal")
-                                
-                except Exception as e:
-                    display_pennypet_alert(f"❌ Erreur lors de la recherche: {str(e)}", "error", "😔")
-        
-        # Gestion des résultats de recherche
-        if search_performed:
-            if res and len(res) == 1:
-                client = res[0]
-                formule_client = client["formule"]
-                st.session_state.client_info = client
-                
-                st.markdown("#### ✅ Ton contrat PennyPet identifié")
-                
-                info_formule = get_pennypet_formule_info(formule_client)
-                st.markdown(f"""
-                <div class="pennypet-card pennypet-animated">
-                    <h4>📋 Informations de ton contrat</h4>
-                    <p><strong>Propriétaire:</strong> {client['proprietaire']}</p>
-                    <p><strong>Animal:</strong> {client['animal']} ({client.get('type_animal', 'Non spécifié')})</p>
-                    <p><strong>Identification:</strong> {client['identification']}</p>
-                    <div style="background: {info_formule['color']}; color: white; padding: 1rem; border-radius: 8px; margin-top: 1rem;">
-                        <h5>{info_formule['emoji']} Formule {client['formule']}</h5>
-                        <p><strong>Couverture:</strong> {info_formule['couverture']}</p>
-                        <p><strong>Remboursement:</strong> {info_formule['taux_remboursement']}%</p>
-                        <p><strong>Plafond:</strong> {info_formule['plafond']}€/an</p>
-                        <p><em>{info_formule['description']}</em></p>
-                    </div>
+            info_formule = get_pennypet_formule_info("INTEGRAL")
+            st.markdown(f"""
+            <div class="pennypet-card fade-in">
+                <h4>✅ Contrat PennyPet trouvé !</h4>
+                <p><strong>Propriétaire:</strong> {client['proprietaire']}</p>
+                <p><strong>Animal:</strong> {client['animal']} ({client['type_animal']})</p>
+                <div style="background: {info_formule['color']}; color: white; padding: 1rem; border-radius: 8px; margin-top: 1rem;">
+                    <h5>{info_formule['emoji']} Formule {client['formule']}</h5>
+                    <p><strong>Couverture:</strong> {info_formule['couverture']}</p>
+                    <p><strong>Remboursement:</strong> {info_formule['taux_remboursement']}%</p>
+                    <p><strong>Plafond:</strong> {info_formule['plafond']}€/an</p>
                 </div>
-                """, unsafe_allow_html=True)
-                
-                display_pennypet_alert("🎉 Parfait ! Passe à l'onglet Remboursement pour voir tes gains.", "success", "🚀")
-                
-            elif res and len(res) > 1:
-                st.markdown("#### 🔄 Plusieurs contrats PennyPet trouvés")
-                
-                options = [f"{r['proprietaire']} – {r['animal']} ({r['identification']})" for r in res]
-                choix = st.selectbox("🎯 Sélectionne ton contrat approprié:", options)
-                
-                if choix:
-                    idx = options.index(choix)
-                    client = res[idx]
-                    formule_client = client["formule"]
-                    st.session_state.client_info = client
-                    
-                    info_formule = get_pennypet_formule_info(formule_client)
-                    st.markdown(f"""
-                    <div class="pennypet-card pennypet-animated">
-                        <h4>📋 Ton contrat sélectionné</h4>
-                        <p><strong>Propriétaire:</strong> {client['proprietaire']}</p>
-                        <p><strong>Animal:</strong> {client['animal']} ({client.get('type_animal', 'Non spécifié')})</p>
-                        <div style="background: {info_formule['color']}; color: white; padding: 1rem; border-radius: 8px; margin-top: 1rem;">
-                            <h5>{info_formule['emoji']} Formule {client['formule']}</h5>
-                            <p><strong>Couverture:</strong> {info_formule['couverture']}</p>
-                            <p><strong>Remboursement:</strong> {info_formule['taux_remboursement']}%</p>
-                            <p><strong>Plafond:</strong> {info_formule['plafond']}€/an</p>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    display_pennypet_alert("✅ Super ! Passe à l'onglet Remboursement.", "success", "🚀")
-            else:
-                st.markdown("#### 💡 Mode Simulation PennyPet")
-                display_pennypet_alert(PENNYPET_MESSAGES["no_contract"], "warning", "💡")
-                
-                with st.form("simulation_form"):
-                    st.markdown("##### 📝 Informations pour la simulation")
-                    
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        sim_proprietaire = st.text_input("👤 Ton nom", value=nom_proprietaire or "")
-                        sim_animal = st.text_input("🐾 Nom de ton animal", value=nom_animal or "")
-                    
-                    with col2:
-                        sim_type = st.selectbox("🏠 Type d'animal", ["Chien", "Chat", "NAC", "Autre"])
-                        sim_formule = st.selectbox("📋 Formule à simuler", formules_possibles)
-                    
-                    if st.form_submit_button("💻 Lancer la simulation PennyPet"):
-                        client = {
-                            "proprietaire": sim_proprietaire or "Simulation",
-                            "animal": sim_animal or "Simulation",
-                            "type_animal": sim_type,
-                            "formule": sim_formule,
-                            "identification": "SIMULATION"
-                        }
-                        st.session_state.client_info = client
-                        
-                        display_pennypet_alert("✅ Mode simulation activé ! Découvre tes remboursements PennyPet.", "success", "🎯")
+            </div>
+            """, unsafe_allow_html=True)
 
 with tab3:
     st.markdown("### 💰 Calcul de tes Remboursements PennyPet")
     
     if not st.session_state.extraction_result or not st.session_state.client_info:
-        display_pennypet_alert("⚠️ Termine d'abord l'extraction et l'identification dans les onglets précédents.", "warning", "📋")
+        display_pennypet_alert("⚠️ Termine d'abord l'extraction et l'identification.", "warning", "📋")
     else:
         client = st.session_state.client_info
         formule_client = client["formule"]
         
-        st.markdown("#### 👤 Ton Profil PennyPet")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown(f"""
-            <div class="pennypet-card">
-                <h4>📋 Détails de ton contrat</h4>
-                <p><strong>Propriétaire:</strong> {client['proprietaire']}</p>
-                <p><strong>Animal:</strong> {client['animal']} ({client.get('type_animal', 'Non spécifié')})</p>
-                <p><strong>Formule:</strong> <span style="color: var(--pennypet-primary); font-weight: bold;">{client['formule']}</span></p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            info_formule = get_pennypet_formule_info(formule_client)
-            st.markdown(f"""
-            <div class="pennypet-card">
-                <div style="background: {info_formule['color']}; color: white; padding: 1rem; border-radius: 8px;">
-                    <h4>{info_formule['emoji']} Couverture {formule_client}</h4>
-                    <p><strong>Type:</strong> {info_formule['couverture']}</p>
-                    <p><strong>Remboursement:</strong> {info_formule['taux_remboursement']}%</p>
-                    <p><strong>Plafond annuel:</strong> {info_formule['plafond']}€</p>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        
         if st.button("💳 Calculer mes remboursements PennyPet", type="primary"):
-            processor = PennyPetProcessor()
+            result = st.session_state.extraction_result
             
-            with st.spinner("💰 Calcul de tes remboursements PennyPet en cours..."):
-                try:
-                    bytes_data = uploaded.read() if uploaded else None
-                    if not bytes_data:
-                        display_pennypet_alert("❌ Données de facture non disponibles", "error", "😔")
-                        st.stop()
+            if result.get('success'):
+                st.session_state.remboursement_result = result
+                display_pennypet_alert(PENNYPET_MESSAGES["calculation_done"], "success", "🎉")
+                
+                # Totaux
+                resume = result.get('resume', {})
+                total_facture = resume.get('total_facture', 0)
+                total_rembourse = resume.get('total_rembourse', 0)
+                reste_a_charge = resume.get('reste_a_charge', 0)
+                
+                # Métriques
+                st.markdown('<div class="metrics-grid">', unsafe_allow_html=True)
+                st.markdown(display_pennypet_metric(f"{total_facture:.2f}€", "Total Facture", "🧾"), unsafe_allow_html=True)
+                st.markdown(display_pennypet_metric(f"{total_rembourse:.2f}€", "Remboursé PennyPet", "💰"), unsafe_allow_html=True)
+                st.markdown(display_pennypet_metric(f"{reste_a_charge:.2f}€", "Reste à ta Charge", "💳"), unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+                
+                # Tableau détaillé
+                if result.get('lignes'):
+                    lignes_data = []
+                    for item in result['lignes']:
+                        ligne = item.get('ligne', {})
+                        lignes_data.append({
+                            'Description': ligne.get('description', 'Non spécifié'),
+                            'Type': '💊 Médicament' if ligne.get('est_medicament') else '🏥 Acte',
+                            'Montant HT': f"{ligne.get('montant_ht', 0):.2f}€",
+                            'Remboursé': f"{item.get('montant_rembourse', 0):.2f}€",
+                            'Reste': f"{item.get('montant_reste_charge', 0):.2f}€"
+                        })
                     
-                    result = processor.process_facture_pennypet(
-                        file_bytes=bytes_data,
-                        formule_client=formule_client,
-                        llm_provider=provider
-                    )
-                    
-                    if not result.get('success', False):
-                        display_pennypet_alert(f"❌ Calcul échoué: {result.get('error', 'Erreur inconnue')}", "error", "😔")
-                        st.stop()
-                    
-                    st.session_state.remboursement_result = result
-                    
-                    display_pennypet_alert(PENNYPET_MESSAGES["calculation_done"], "success", "🎉")
-                    
-                    st.markdown("#### 📊 Tes Remboursements PennyPet")
-                    
-                    # Calcul des totaux selon les vraies règles PennyPet
-                    total_facture = 0
-                    total_rembourse = 0
-                    
-                    if result.get('lignes'):
-                        for item in result['lignes']:
-                            ligne = item.get('ligne', {})
-                            montant_ht = ligne.get('montant_ht', 0)
-                            total_facture += montant_ht
-                            
-                            # Application des vraies règles PennyPet
-                            if formule_client == "START":
-                                total_rembourse += 0
-                            elif formule_client == "PREMIUM":
-                                est_accident = item.get('est_accident', False)
-                                if est_accident:
-                                    remb = min(montant_ht, 500)
-                                    total_rembourse += remb
-                            elif formule_client == "INTEGRAL":
-                                remb = min(montant_ht * 0.5, 1000)
-                                total_rembourse += remb
-                            elif formule_client == "INTEGRAL_PLUS":
-                                remb = min(montant_ht, 1000)
-                                total_rembourse += remb
-                    
-                    reste_a_charge = total_facture - total_rembourse
-                    
-                    # Affichage des métriques PennyPet
-                    st.markdown('<div class="metrics-grid">', unsafe_allow_html=True)
-                    st.markdown(display_pennypet_metric(f"{total_facture:.2f}€", "Total Facture", "🧾"), unsafe_allow_html=True)
-                    st.markdown(display_pennypet_metric(f"{total_rembourse:.2f}€", "Remboursé PennyPet", "💰"), unsafe_allow_html=True)
-                    st.markdown(display_pennypet_metric(f"{reste_a_charge:.2f}€", "Reste à ta Charge", "💳"), unsafe_allow_html=True)
-                    st.markdown('</div>', unsafe_allow_html=True)
-                    
-                    # Tableau détaillé
-                    st.markdown("#### 📋 Détail par ligne de ta facture")
-                    
-                    if result.get('lignes'):
-                        lignes_data = []
-                        for item in result['lignes']:
-                            ligne = item.get('ligne', {})
-                            montant_ht = ligne.get('montant_ht', 0)
-                            
-                            # Calcul du remboursement selon la formule
-                            remb_individuel = 0
-                            if formule_client == "START":
-                                remb_individuel = 0
-                            elif formule_client == "PREMIUM":
-                                est_accident = item.get('est_accident', False)
-                                if est_accident:
-                                    remb_individuel = min(montant_ht, 500)
-                            elif formule_client == "INTEGRAL":
-                                remb_individuel = min(montant_ht * 0.5, 1000)
-                            elif formule_client == "INTEGRAL_PLUS":
-                                remb_individuel = min(montant_ht, 1000)
-                            
-                            reste_individuel = montant_ht - remb_individuel
-                            
-                            lignes_data.append({
-                                'Description': ligne.get('description', ligne.get('code_acte', 'Non spécifié')),
-                                'Type': '💊 Médicament' if ligne.get('est_medicament') else '🏥 Acte',
-                                'Montant HT': f"{montant_ht:.2f}€",
-                                'Formule': formule_client,
-                                'Remboursé PennyPet': f"{remb_individuel:.2f}€",
-                                'Reste': f"{reste_individuel:.2f}€"
-                            })
-                        
-                        df = pd.DataFrame(lignes_data)
-                        st.dataframe(df, use_container_width=True)
-                    
-                    # Explication des règles PennyPet
-                    st.markdown("#### 📖 Règles PennyPet appliquées")
-                    info_formule = get_pennypet_formule_info(formule_client)
-                    
-                    if formule_client == "START":
-                        display_pennypet_alert("📱 **Formule START**: Pas d'assurance incluse - Découvre nos autres formules !", "info", "💡")
-                    elif formule_client == "PREMIUM":
-                        display_pennypet_alert("🚨 **Formule PREMIUM**: Fonds d'urgence pour accidents uniquement - Remboursement à 100% jusqu'à 500€/an", "info", "🚨")
-                    elif formule_client == "INTEGRAL":
-                        display_pennypet_alert("💚 **Formule INTEGRAL**: Assurance santé animale - Remboursement à 50% pour accidents et maladies jusqu'à 1000€/an", "info", "💚")
-                    elif formule_client == "INTEGRAL_PLUS":
-                        display_pennypet_alert("💜 **Formule INTEGRAL_PLUS**: Assurance santé animale - Remboursement à 100% pour accidents et maladies jusqu'à 1000€/an", "info", "💜")
-                    
-                    # Bouton d'enregistrement
-                    if client.get('identification') != 'SIMULATION':
-                        if st.button("💾 Enregistrer mon remboursement PennyPet", type="secondary"):
-                            try:
-                                contrat_data = supabase.table("contrats_animaux") \
-                                    .select("id") \
-                                    .eq("identification", client["identification"]) \
-                                    .limit(1).execute().data
-                                
-                                if contrat_data:
-                                    contrat_id = contrat_data[0]["id"]
-                                    
-                                    supabase.table("remboursements").insert([{
-                                        "id_contrat": contrat_id,
-                                        "date_acte": datetime.now().isoformat(),
-                                        "montant_facture": total_facture,
-                                        "montant_rembourse": total_rembourse,
-                                        "reste_a_charge": reste_a_charge
-                                    }]).execute()
-                                    
-                                    display_pennypet_alert(PENNYPET_MESSAGES["save_success"], "success", "💾")
-                                else:
-                                    display_pennypet_alert("❌ Impossible de trouver le contrat", "error", "😔")
-                                    
-                            except Exception as e:
-                                display_pennypet_alert(f"❌ Erreur lors de l'enregistrement: {str(e)}", "error", "😔")
-                    
-                except Exception as e:
-                    display_pennypet_alert(f"❌ Erreur lors du calcul: {str(e)}", "error", "😔")
+                    df = pd.DataFrame(lignes_data)
+                    st.dataframe(df, use_container_width=True)
 
 with tab4:
     st.markdown("### 📈 Analyse et Insights PennyPet")
     
     if not st.session_state.get('remboursement_result'):
-        display_pennypet_alert("⚠️ Calcule d'abord tes remboursements pour voir l'analyse complète.", "warning", "📊")
+        display_pennypet_alert("⚠️ Calcule d'abord tes remboursements.", "warning", "📊")
     else:
         result = st.session_state.remboursement_result
-        client = st.session_state.client_info
         
-        st.markdown("#### 📊 Répartition de tes Remboursements PennyPet")
-        
+        # Graphiques
         col1, col2 = st.columns(2)
         
         with col1:
-            # Calcul des totaux
-            total_facture = sum(item.get('ligne', {}).get('montant_ht', 0) for item in result.get('lignes', []))
-            total_rembourse = 0
-            
-            formule_client = client["formule"]
-            for item in result.get('lignes', []):
-                ligne = item.get('ligne', {})
-                montant_ht = ligne.get('montant_ht', 0)
-                
-                if formule_client == "START":
-                    total_rembourse += 0
-                elif formule_client == "PREMIUM":
-                    est_accident = item.get('est_accident', False)
-                    if est_accident:
-                        total_rembourse += min(montant_ht, 500)
-                elif formule_client == "INTEGRAL":
-                    total_rembourse += min(montant_ht * 0.5, 1000)
-                elif formule_client == "INTEGRAL_PLUS":
-                    total_rembourse += min(montant_ht, 1000)
-            
-            reste_a_charge = total_facture - total_rembourse
+            resume = result.get('resume', {})
+            total_rembourse = resume.get('total_rembourse', 0)
+            reste_a_charge = resume.get('reste_a_charge', 0)
             
             if total_rembourse > 0 or reste_a_charge > 0:
-                # Couleurs PennyPet pour les graphiques
-                colors = ['#4ECDC4', '#FF6B35']
-                
                 fig_pie = px.pie(
                     values=[total_rembourse, reste_a_charge],
-                    names=['Remboursé PennyPet', 'Reste à ta charge'],
-                    title="💰 Répartition selon PennyPet",
-                    color_discrete_sequence=colors
+                    names=['Remboursé PennyPet', 'Reste à charge'],
+                    title="💰 Répartition des coûts",
+                    color_discrete_sequence=['#4ECDC4', '#FF6B35']
                 )
-                fig_pie.update_layout(height=400, font_family="Inter")
                 st.plotly_chart(fig_pie, use_container_width=True)
         
         with col2:
-            if result.get('lignes'):
-                medicaments_total = sum(
-                    item.get('ligne', {}).get('montant_ht', 0) 
-                    for item in result['lignes'] 
-                    if item.get('ligne', {}).get('est_medicament', False)
-                )
-                actes_total = sum(
-                    item.get('ligne', {}).get('montant_ht', 0) 
-                    for item in result['lignes'] 
-                    if not item.get('ligne', {}).get('est_medicament', False)
-                )
-                
-                if medicaments_total > 0 or actes_total > 0:
-                    colors = ['#A29BFE', '#45B7D1']
-                    
-                    fig_bar = px.bar(
-                        x=['💊 Médicaments', '🏥 Actes'],
-                        y=[medicaments_total, actes_total],
-                        title="📋 Répartition par type",
-                        color=['💊 Médicaments', '🏥 Actes'],
-                        color_discrete_sequence=colors
-                    )
-                    fig_bar.update_layout(height=400, showlegend=False, font_family="Inter")
-                    st.plotly_chart(fig_bar, use_container_width=True)
-        
-        # Statistiques détaillées PennyPet
-        st.markdown("#### 📋 Statistiques Détaillées PennyPet")
-        
-        stats = result.get('statistiques', {})
-        
-        st.markdown('<div class="metrics-grid">', unsafe_allow_html=True)
-        st.markdown(display_pennypet_metric(stats.get('lignes_traitees', 0), "Lignes traitées", "🔍"), unsafe_allow_html=True)
-        st.markdown(display_pennypet_metric(stats.get('medicaments_detectes', 0), "Médicaments détectés", "💊"), unsafe_allow_html=True)
-        st.markdown(display_pennypet_metric(stats.get('actes_detectes', 0), "Actes détectés", "🏥"), unsafe_allow_html=True)
-        
-        if total_facture > 0:
-            taux_global = (total_rembourse / total_facture * 100)
-            st.markdown(display_pennypet_metric(f"{taux_global:.1f}%", "Taux global PennyPet", "📈"), unsafe_allow_html=True)
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Comparaison des formules PennyPet
-        st.markdown("#### 💡 Comparaison des Formules PennyPet")
-        
-        formules_comp = {
-            "Formule": ["START", "PREMIUM", "INTEGRAL", "INTEGRAL_PLUS"],
-            "Emoji": ["📱", "🚨", "💚", "💜"],
-            "Couverture": ["Aucune", "Accidents", "Accidents + Maladies", "Accidents + Maladies"],
-            "Taux": ["0%", "100%", "50%", "100%"],
-            "Plafond": ["0€", "500€", "1000€", "1000€"],
-            "Remboursement estimé": []
-        }
-        
-        # Calcul estimé pour chaque formule
-        for formule in formules_comp["Formule"]:
-            if formule == "START":
-                estim = 0
-            elif formule == "PREMIUM":
-                accidents_total = sum(
-                    item.get('ligne', {}).get('montant_ht', 0) 
-                    for item in result.get('lignes', [])
-                    if item.get('est_accident', False)
-                )
-                estim = min(accidents_total, 500)
-            elif formule == "INTEGRAL":
-                estim = min(total_facture * 0.5, 1000)
-            elif formule == "INTEGRAL_PLUS":
-                estim = min(total_facture, 1000)
-            
-            formules_comp["Remboursement estimé"].append(f"{estim:.2f}€")
-        
-        df_comp = pd.DataFrame(formules_comp)
-        st.dataframe(df_comp, use_container_width=True)
-        
-        # Message de clôture PennyPet
-        st.markdown("#### 🐾 Merci de faire confiance à PennyPet")
-        
-        display_pennypet_alert(
-            "💚 Ensemble, nous prenons soin de tes compagnons à quatre pattes. "
-            "L'équipe PennyPet est là pour simplifier la gestion financière de leur bien-être !", 
-            "success", 
-            "🌟"
-        )
+            stats = result.get('statistiques', {})
+            st.markdown('<div class="metrics-grid">', unsafe_allow_html=True)
+            st.markdown(display_pennypet_metric(stats.get('medicaments_detectes', 0), "Médicaments", "💊"), unsafe_allow_html=True)
+            st.markdown(display_pennypet_metric(stats.get('actes_detectes', 0), "Actes", "🏥"), unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
-# Tab Debug (uniquement si debug activé)
+# TAB DEBUG (conditionnel)
 if debug_enabled:
     with tab_debug:
-        display_debug_section()
+        st.markdown("### 🐞 Debug JSON LLM")
+        
+        if st.session_state.extraction_result:
+            raw_response = st.session_state.extraction_result.get("raw_llm_response", "")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("#### 📝 Réponse LLM brute")
+                st.text_area("Contenu complet", raw_response, height=300)
+                
+                # Analyse des accolades
+                open_braces = raw_response.count('{')
+                close_braces = raw_response.count('}')
+                st.markdown(f"**Accolades:** `{{` = {open_braces}, `}}` = {close_braces}")
+                
+                if open_braces != close_braces:
+                    st.error(f"⚠️ Déséquilibre des accolades ! Différence: {abs(open_braces - close_braces)}")
+                else:
+                    st.success("✅ Accolades équilibrées")
+            
+            with col2:
+                st.markdown("#### 🧪 Test Parser JSON")
+                
+                if st.button("🔍 Tester le parsing JSON"):
+                    try:
+                        parsed_data = parse_llm_json(raw_response)
+                        st.success("✅ JSON parsé avec succès !")
+                        st.json(parsed_data)
+                        
+                        # Statistiques du parsing
+                        nb_lignes = len(parsed_data.get('lignes', []))
+                        st.info(f"📊 {nb_lignes} ligne(s) extraite(s)")
+                        
+                    except Exception as e:
+                        st.error(f"❌ Erreur parsing JSON:")
+                        st.exception(e)
+                        
+                        # Aide au debug
+                        error_str = str(e)
+                        if "Expecting ',' delimiter" in error_str:
+                            st.warning("💡 **Suggestion:** Problème de virgule manquante dans le JSON")
+                        elif "Unterminated string" in error_str:
+                            st.warning("💡 **Suggestion:** Chaîne de caractères non fermée")
+                        elif "Expecting" in error_str:
+                            st.warning("💡 **Suggestion:** Structure JSON malformée")
+                
+                # Outils de debug supplémentaires
+                st.markdown("#### 🛠️ Outils de debug")
+                
+                if st.button("🔍 Analyser la structure JSON"):
+                    # Recherche de patterns problématiques
+                    problems = []
+                    
+                    # Vérifier les virgules manquantes communes
+                    if '"}{"' in raw_response:
+                        problems.append("Objects JSON collés sans virgule")
+                    if '}[' in raw_response or ']{' in raw_response:
+                        problems.append("Structures imbriquées mal délimitées")
+                    
+                    # Vérifier les guillemets
+                    single_quotes = raw_response.count("'")
+                    if single_quotes > 0:
+                        problems.append(f"{single_quotes} guillemets simples détectés")
+                    
+                    if problems:
+                        st.warning("⚠️ **Problèmes détectés:**")
+                        for problem in problems:
+                            st.write(f"• {problem}")
+                    else:
+                        st.success("✅ Aucun problème évident détecté")
+        else:
+            st.info("🔍 Aucune extraction disponible pour le debug. Uploadez et analysez d'abord une facture.")
 
 st.markdown('</div>', unsafe_allow_html=True)
 
-# Footer PennyPet avec gradients
+# Footer
 st.markdown("""
 ---
-<div style="text-align: center; color: var(--pennypet-dark); padding: 2rem; font-family: 'Inter', sans-serif;">
+<div style="text-align: center; padding: 2rem;">
     <div style="background: linear-gradient(135deg, #fd79a8 0%, #A29BFE 50%, #6c5ce7 100%); padding: 2rem; border-radius: 16px; color: white; margin-bottom: 1rem;">
         <h3 style="margin: 0;">🐾 PennyPet</h3>
         <p style="margin: 0.5rem 0 0 0;">Ton compagnon remboursement vétérinaire</p>
     </div>
     <p style="margin: 0; font-size: 0.9rem; color: #6c757d;">
         💚 Développé avec amour par l'équipe PennyPet - Ensemble, prenons soin de nos animaux
-    </p>
-    <p style="margin: 0.5rem 0 0 0; font-size: 0.8rem; color: #6c757d;">
-        🏄‍♂️ Made in Biarritz  🚀 Innovation française
     </p>
 </div>
 """, unsafe_allow_html=True)
