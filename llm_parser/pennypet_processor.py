@@ -1,16 +1,22 @@
 import json
 import re
+import logging
+import pandas as pd
 from typing import Dict, List, Any, Tuple, Optional
 from config.pennypet_config import PennyPetConfig
 from openrouter_client import OpenRouterClient
 import unicodedata
+
+# Configuration du logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 try:
     from rapidfuzz import process, fuzz
     RAPIDFUZZ_AVAILABLE = True
 except ImportError:
     RAPIDFUZZ_AVAILABLE = False
-    print("Warning: rapidfuzz not available. Fuzzy matching will be disabled.")
+    logger.warning("RapidFuzz non disponible, fuzzy matching désactivé")
 
 def pseudojson_to_json(text: str) -> str:
     """
@@ -41,26 +47,22 @@ def normaliser_accents(texte: str) -> str:
 
 class NormaliseurAMVAmeliore:
     """
-    Normaliseur amélioré des actes et médicaments avec :
-      1. Normalisation des accents et caractères spéciaux
-      2. Gestion des variantes orthographiques
-      3. Recherche partielle optimisée
-      4. Fuzzy matching intelligent
+    Normaliseur amélioré utilisant le glossaire JSON existant
     """
     def __init__(self, config: PennyPetConfig):
         self.config = config
         self.cache: Dict[str, Optional[str]] = {}
         
-        # Glossaire actes (mots-clés en minuscules)
-        self.termes_actes = set(config.actes_df["field_label"].str.lower())
-        self.actes_df = config.actes_df.dropna(subset=["pattern"])
+        # Récupération sécurisée des termes d'actes
+        self.termes_actes = self._get_termes_actes_safe(config)
+        self.actes_df = self._get_actes_df_safe(config)
         
-        # Glossaire médicaments normalisé
+        # Utilisation du glossaire pharmaceutique EXISTANT (set)
         self.termes_medicaments = config.glossaire_pharmaceutique
-        self.medicaments_df = config.medicaments_df
-        self.mapping_amv = config.mapping_amv
+        self.medicaments_df = getattr(config, 'medicaments_df', pd.DataFrame())
+        self.mapping_amv = getattr(config, 'mapping_amv', {})
         
-        # Préprocessage du glossaire pharmaceutique
+        # Préprocessage du glossaire (le glossaire est déjà un set)
         self.glossaire_normalise = self._preprocess_glossaire()
         
         # Patterns regex pour médicaments
@@ -86,50 +88,119 @@ class NormaliseurAMVAmeliore:
             'gramme': ['g', 'grammes'],
             'litre': ['l', 'litres']
         }
+        
+        logger.info(f"Normaliseur initialisé: {len(self.termes_actes)} actes, {len(self.termes_medicaments)} médicaments")
+
+    def _get_termes_actes_safe(self, config: PennyPetConfig) -> set:
+        """Récupère les termes d'actes de manière sécurisée"""
+        try:
+            if not hasattr(config, 'actes_df') or config.actes_df is None or config.actes_df.empty:
+                logger.warning("actes_df non disponible")
+                return set()
+            
+            df = config.actes_df
+            
+            # Vérifier field_label existe
+            if "field_label" in df.columns:
+                logger.info("Utilisation de la colonne 'field_label' pour les actes")
+                return set(df["field_label"].dropna().astype(str).str.lower())
+            
+            # Fallback sur d'autres colonnes possibles
+            possible_columns = ['label', 'acte', 'description', 'libelle', 'terme']
+            for col in possible_columns:
+                if col in df.columns:
+                    logger.info(f"Utilisation de la colonne '{col}' pour les actes")
+                    return set(df[col].dropna().astype(str).str.lower())
+            
+            # Dernière tentative avec la première colonne texte
+            text_columns = df.select_dtypes(include=['object']).columns
+            if len(text_columns) > 0:
+                col = text_columns[0]
+                logger.warning(f"Utilisation de '{col}' par défaut pour les actes")
+                return set(df[col].dropna().astype(str).str.lower())
+            
+            return set()
+            
+        except Exception as e:
+            logger.error(f"Erreur extraction termes actes: {e}")
+            return set()
+
+    def _get_actes_df_safe(self, config: PennyPetConfig) -> pd.DataFrame:
+        """Récupère le DataFrame des actes de manière sécurisée"""
+        try:
+            if not hasattr(config, 'actes_df') or config.actes_df is None or config.actes_df.empty:
+                return pd.DataFrame()
+            
+            df = config.actes_df
+            
+            if 'pattern' in df.columns:
+                return df.dropna(subset=["pattern"])
+            else:
+                logger.warning("Colonne 'pattern' manquante dans actes_df")
+                return pd.DataFrame()
+                
+        except Exception as e:
+            logger.error(f"Erreur extraction DataFrame actes: {e}")
+            return pd.DataFrame()
 
     def _preprocess_glossaire(self) -> Dict[str, str]:
-        """Préprocesse le glossaire pharmaceutique pour optimiser la recherche"""
+        """Préprocesse le glossaire pharmaceutique (déjà un set)"""
         glossaire_normalise = {}
         
-        for terme in self.termes_medicaments:
-            # Normalisation principale
-            terme_norm = normaliser_accents(terme)
-            if terme_norm:
-                glossaire_normalise[terme_norm] = terme
-            
-            # Ajouter les variantes
-            for variante in self._generer_variantes(terme):
-                variante_norm = normaliser_accents(variante)
-                if variante_norm:
-                    glossaire_normalise[variante_norm] = terme
+        try:
+            # Le glossaire est déjà un set de termes en minuscules
+            for terme in self.termes_medicaments:
+                if not terme:
+                    continue
+                    
+                # Normalisation principale
+                terme_norm = normaliser_accents(str(terme))
+                if terme_norm:
+                    glossaire_normalise[terme_norm] = terme
+                
+                # Ajouter les variantes
+                for variante in self._generer_variantes(str(terme)):
+                    variante_norm = normaliser_accents(variante)
+                    if variante_norm:
+                        glossaire_normalise[variante_norm] = terme
+                        
+        except Exception as e:
+            logger.error(f"Erreur préprocessing glossaire: {e}")
         
+        logger.info(f"Glossaire normalisé: {len(glossaire_normalise)} entrées")
         return glossaire_normalise
 
     def _generer_variantes(self, terme: str) -> List[str]:
         """Génère des variantes orthographiques d'un terme"""
         variantes = [terme]
         
-        # Variantes avec/sans 's' final
-        if terme.endswith('s'):
-            variantes.append(terme[:-1])
-        else:
-            variantes.append(terme + 's')
-        
-        # Variantes avec abréviations
-        for base, abbrevs in self.variantes.items():
-            if base in terme.lower():
-                for abbrev in abbrevs:
-                    variantes.append(terme.lower().replace(base, abbrev))
+        try:
+            # Variantes avec/sans 's' final
+            if terme.endswith('s'):
+                variantes.append(terme[:-1])
+            else:
+                variantes.append(terme + 's')
+            
+            # Variantes avec abréviations
+            for base, abbrevs in self.variantes.items():
+                if base in terme.lower():
+                    for abbrev in abbrevs:
+                        variantes.append(terme.lower().replace(base, abbrev))
+        except Exception as e:
+            logger.debug(f"Erreur génération variantes pour '{terme}': {e}")
         
         return variantes
 
     def _detecter_patterns_medicaments(self, texte: str) -> bool:
         """Détecte les patterns typiques des médicaments"""
-        texte_norm = normaliser_accents(texte)
-        
-        for pattern in self.patterns_medicaments:
-            if re.search(pattern, texte_norm, re.IGNORECASE):
-                return True
+        try:
+            texte_norm = normaliser_accents(texte)
+            
+            for pattern in self.patterns_medicaments:
+                if re.search(pattern, texte_norm, re.IGNORECASE):
+                    return True
+        except Exception as e:
+            logger.debug(f"Erreur détection pattern médicament '{texte}': {e}")
         
         return False
 
@@ -138,119 +209,133 @@ class NormaliseurAMVAmeliore:
         if not libelle_brut:
             return None
         
-        cle = libelle_brut.upper().strip()
-        if cle in self.cache:
-            return self.cache[cle]
-        
-        # Normalisation pour recherche
-        libelle_norm = normaliser_accents(libelle_brut)
-        
-        # 1. Pattern CSV exact
-        for _, row in self.actes_df.iterrows():
-            if row["pattern"].search(cle):
-                self.cache[cle] = row["code_acte"]
-                return row["code_acte"]
-        
-        # 2. Fallback sémantique actes
-        for terme in self.termes_actes:
-            terme_norm = normaliser_accents(terme)
-            if re.search(rf"(?<!\w){re.escape(terme_norm)}(?!\w)", libelle_norm):
-                code = terme.upper()
-                self.cache[cle] = code
-                return code
-        
-        # 3. Fuzzy matching sur les actes
-        if RAPIDFUZZ_AVAILABLE:
-            codes = self.actes_df["code_acte"].dropna().tolist()
-            if codes:
-                match, score, _ = process.extractOne(cle, codes, scorer=fuzz.token_sort_ratio)
-                if score >= 80:
-                    self.cache[cle] = match
-                    return match
-        
-        self.cache[cle] = None
-        return None
+        try:
+            cle = str(libelle_brut).upper().strip()
+            if cle in self.cache:
+                return self.cache[cle]
+            
+            # Normalisation pour recherche
+            libelle_norm = normaliser_accents(libelle_brut)
+            
+            # 1. Pattern CSV exact
+            if not self.actes_df.empty:
+                for _, row in self.actes_df.iterrows():
+                    pattern = row.get("pattern")
+                    if pattern and hasattr(pattern, 'search'):
+                        try:
+                            if pattern.search(cle):
+                                code_acte = row.get("code_acte", cle)
+                                self.cache[cle] = code_acte
+                                return code_acte
+                        except Exception:
+                            continue
+            
+            # 2. Fallback sémantique actes
+            for terme in self.termes_actes:
+                try:
+                    terme_norm = normaliser_accents(terme)
+                    if re.search(rf"(?<!\w){re.escape(terme_norm)}(?!\w)", libelle_norm):
+                        code = terme.upper()
+                        self.cache[cle] = code
+                        return code
+                except Exception:
+                    continue
+            
+            # 3. Fuzzy matching sur les actes
+            if RAPIDFUZZ_AVAILABLE and not self.actes_df.empty:
+                try:
+                    codes = self.actes_df["code_acte"].dropna().astype(str).tolist()
+                    if codes:
+                        match, score, _ = process.extractOne(cle, codes, scorer=fuzz.token_sort_ratio)
+                        if score >= 80:
+                            self.cache[cle] = match
+                            return match
+                except Exception:
+                    pass
+            
+            self.cache[cle] = None
+            return None
+            
+        except Exception as e:
+            logger.error(f"Erreur normalisation acte '{libelle_brut}': {e}")
+            return None
 
     def normalise_medicament(self, libelle_brut: str) -> Optional[str]:
-        """Normalise un médicament avec recherche améliorée"""
+        """Normalise un médicament avec le glossaire JSON existant"""
         if not libelle_brut:
             return None
         
-        cle = libelle_brut.upper().strip()
-        if cle in self.cache:
-            return self.cache[cle]
-        
-        # Normalisation pour recherche
-        libelle_norm = normaliser_accents(libelle_brut)
-        
-        # 1. Détection par patterns regex
-        if self._detecter_patterns_medicaments(libelle_brut):
-            self.cache[cle] = "MEDICAMENTS"
-            return "MEDICAMENTS"
-        
-        # 2. Recherche exacte dans glossaire normalisé
-        if libelle_norm in self.glossaire_normalise:
-            self.cache[cle] = "MEDICAMENTS"
-            return "MEDICAMENTS"
-        
-        # 3. Recherche partielle dans glossaire
-        for terme_norm in self.glossaire_normalise.keys():
-            # Recherche bidirectionnelle
-            if (terme_norm in libelle_norm or 
-                libelle_norm in terme_norm or
-                any(word in libelle_norm for word in terme_norm.split() if len(word) > 3)):
-                self.cache[cle] = "MEDICAMENTS"
-                return "MEDICAMENTS"
-        
-        # 4. Recherche dans la base de médicaments
-        if hasattr(self.medicaments_df, 'medicament'):
-            meds_normalises = [normaliser_accents(m) for m in self.medicaments_df["medicament"].dropna()]
-            if libelle_norm in meds_normalises:
-                self.cache[cle] = "MEDICAMENTS"
-                return "MEDICAMENTS"
-        
-        # 5. Fuzzy matching intelligent
-        if RAPIDFUZZ_AVAILABLE:
-            # Fuzzy sur le glossaire
-            if self.glossaire_normalise:
-                match, score, _ = process.extractOne(
-                    libelle_norm, 
-                    list(self.glossaire_normalise.keys()), 
-                    scorer=fuzz.partial_ratio
-                )
-                if score >= 85:
-                    self.cache[cle] = "MEDICAMENTS"
-                    return "MEDICAMENTS"
+        try:
+            cle = str(libelle_brut).upper().strip()
+            if cle in self.cache:
+                return self.cache[cle]
             
-            # Fuzzy sur la base de médicaments
-            if hasattr(self.medicaments_df, 'medicament'):
-                choices = [normaliser_accents(m) for m in self.medicaments_df["medicament"].dropna()]
-                if choices:
-                    match, score, _ = process.extractOne(
-                        libelle_norm, 
-                        choices, 
-                        scorer=fuzz.token_set_ratio
-                    )
-                    if score >= 80:
+            # Normalisation pour recherche
+            libelle_norm = normaliser_accents(libelle_brut)
+            
+            # 1. Détection par patterns regex
+            if self._detecter_patterns_medicaments(libelle_brut):
+                self.cache[cle] = "MEDICAMENTS"
+                return "MEDICAMENTS"
+            
+            # 2. Recherche exacte dans glossaire normalisé
+            if libelle_norm in self.glossaire_normalise:
+                self.cache[cle] = "MEDICAMENTS"
+                return "MEDICAMENTS"
+            
+            # 3. Recherche partielle dans glossaire
+            for terme_norm in self.glossaire_normalise.keys():
+                try:
+                    if (terme_norm in libelle_norm or 
+                        libelle_norm in terme_norm or
+                        any(word in libelle_norm for word in terme_norm.split() if len(word) > 3)):
                         self.cache[cle] = "MEDICAMENTS"
                         return "MEDICAMENTS"
-        
-        self.cache[cle] = None
-        return None
+                except Exception:
+                    continue
+            
+            # 4. Fuzzy matching intelligent
+            if RAPIDFUZZ_AVAILABLE and self.glossaire_normalise:
+                try:
+                    match, score, _ = process.extractOne(
+                        libelle_norm, 
+                        list(self.glossaire_normalise.keys()), 
+                        scorer=fuzz.partial_ratio
+                    )
+                    if score >= 85:
+                        self.cache[cle] = "MEDICAMENTS"
+                        return "MEDICAMENTS"
+                except Exception:
+                    pass
+            
+            self.cache[cle] = None
+            return None
+            
+        except Exception as e:
+            logger.error(f"Erreur normalisation médicament '{libelle_brut}': {e}")
+            return None
 
     def normalise(self, libelle_brut: str) -> Optional[str]:
         """Normalise un libellé (acte ou médicament)"""
-        # Priorité : actes d'abord, puis médicaments
-        result = self.normalise_acte(libelle_brut)
-        if result:
-            return result
-        
-        result = self.normalise_medicament(libelle_brut)
-        if result:
-            return result
-        
-        # Fallback : retourner le libellé original normalisé
-        return libelle_brut.strip().upper()
+        if not libelle_brut:
+            return None
+            
+        try:
+            # Priorité : actes d'abord, puis médicaments
+            result = self.normalise_acte(libelle_brut)
+            if result:
+                return result
+            
+            result = self.normalise_medicament(libelle_brut)
+            if result:
+                return result
+            
+            # Fallback : retourner le libellé original normalisé
+            return str(libelle_brut).strip().upper()
+            
+        except Exception as e:
+            logger.error(f"Erreur normalisation '{libelle_brut}': {e}")
+            return str(libelle_brut).strip().upper() if libelle_brut else None
 
     def get_mapping_stats(self) -> Dict[str, Any]:
         """Retourne les statistiques de mapping"""
@@ -261,9 +346,12 @@ class NormaliseurAMVAmeliore:
             "glossaire_normalise": len(self.glossaire_normalise),
             "patterns_medicaments": len(self.patterns_medicaments),
             "variantes": len(self.variantes),
-            "rapidfuzz": RAPIDFUZZ_AVAILABLE
+            "rapidfuzz": RAPIDFUZZ_AVAILABLE,
+            "actes_df_size": len(self.actes_df),
+            "medicaments_df_size": len(self.medicaments_df)
         }
 
+# Le reste de la classe PennyPetProcessor reste identique...
 class PennyPetProcessor:
     """
     Pipeline extraction LLM, normalisation améliorée, calcul remboursement PennyPet.
@@ -274,20 +362,40 @@ class PennyPetProcessor:
         client_mistral: OpenRouterClient = None,
         config: PennyPetConfig = None,
     ):
-        self.config = config or PennyPetConfig()
-        self.client_qwen = client_qwen or OpenRouterClient(model_key="primary")
-        self.client_mistral = client_mistral or OpenRouterClient(model_key="secondary")
-        self.regles_pc_df = self.config.regles_pc_df
-        self.normaliseur = NormaliseurAMVAmeliore(self.config)
-        
-        # Statistiques de traitement
-        self.stats = {
-            'lignes_traitees': 0,
-            'medicaments_detectes': 0,
-            'actes_detectes': 0,
-            'erreurs_normalisation': 0
-        }
+        try:
+            self.config = config or PennyPetConfig()
+            
+            # Initialisation des clients
+            try:
+                self.client_qwen = client_qwen or OpenRouterClient(model_key="primary")
+            except Exception as e:
+                logger.warning(f"Erreur initialisation client Qwen: {e}")
+                self.client_qwen = None
+                
+            try:
+                self.client_mistral = client_mistral or OpenRouterClient(model_key="secondary")
+            except Exception as e:
+                logger.warning(f"Erreur initialisation client Mistral: {e}")
+                self.client_mistral = None
+            
+            self.regles_pc_df = getattr(self.config, 'regles_pc_df', pd.DataFrame())
+            self.normaliseur = NormaliseurAMVAmeliore(self.config)
+            
+            # Statistiques de traitement
+            self.stats = {
+                'lignes_traitees': 0,
+                'medicaments_detectes': 0,
+                'actes_detectes': 0,
+                'erreurs_normalisation': 0
+            }
+            
+            logger.info("PennyPetProcessor initialisé avec succès")
+            
+        except Exception as e:
+            logger.error(f"Erreur initialisation PennyPetProcessor: {e}")
+            raise
 
+    # Les autres méthodes restent identiques à votre version originale...
     def extract_lignes_from_image(
         self, image_bytes: bytes, formule: str, llm_provider: str = "qwen"
     ) -> Tuple[Dict[str, Any], str]:
@@ -427,7 +535,7 @@ class PennyPetProcessor:
                     
                 except Exception as e:
                     self.stats['erreurs_normalisation'] += 1
-                    print(f"Erreur traitement ligne {ligne}: {e}")
+                    logger.error(f"Erreur traitement ligne {ligne}: {e}")
                     continue
             
             # Calcul des totaux
@@ -442,7 +550,8 @@ class PennyPetProcessor:
                 "reste_a_charge": total_facture - total_remb,
                 "stats": self.stats,
                 "mapping_stats": self.normaliseur.get_mapping_stats(),
-                "raw_llm_response": raw_content
+                "raw_llm_response": raw_content,
+                "informations_client": data.get("informations_client", {})
             }
             
         except Exception as e:
